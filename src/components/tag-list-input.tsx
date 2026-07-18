@@ -1,5 +1,7 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 
+import { InfoTooltip } from "@/components/info-tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,12 +11,14 @@ type TagListInputProps = {
   value: string[]
   onChange: (next: string[]) => void
   options?: string[]
+  info?: React.ReactNode
 }
 
 // Free-text tags with click-to-add suggestions from the vocabulary endpoint.
 // Stands in for a full multi-select combobox — good enough for scoping
 // fields (sectors, countries, regions, certifications) until that's needed.
-export function TagListInput({ label, value, onChange, options }: TagListInputProps) {
+export function TagListInput({ label, value, onChange, options, info }: TagListInputProps) {
+  const { t } = useTranslation()
   const [draft, setDraft] = React.useState("")
 
   function addTag(tag: string) {
@@ -24,14 +28,17 @@ export function TagListInput({ label, value, onChange, options }: TagListInputPr
   }
 
   function removeTag(tag: string) {
-    onChange(value.filter((t) => t !== tag))
+    onChange(value.filter((existing) => existing !== tag))
   }
 
   const suggestions = options?.filter((option) => !value.includes(option))
 
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label>{label}</Label>
+        {info && <InfoTooltip>{info}</InfoTooltip>}
+      </div>
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {value.map((tag) => (
@@ -40,7 +47,7 @@ export function TagListInput({ label, value, onChange, options }: TagListInputPr
               variant="secondary"
               className="cursor-pointer"
               onClick={() => removeTag(tag)}
-              title="Click to remove"
+              title={t("tagListInput.clickToRemove")}
             >
               {tag} ×
             </Badge>
@@ -57,7 +64,7 @@ export function TagListInput({ label, value, onChange, options }: TagListInputPr
             setDraft("")
           }
         }}
-        placeholder="Type a value and press Enter"
+        placeholder={t("tagListInput.placeholder")}
       />
       {suggestions && suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -67,7 +74,7 @@ export function TagListInput({ label, value, onChange, options }: TagListInputPr
               variant="outline"
               className="cursor-pointer"
               onClick={() => addTag(option)}
-              title="Click to add"
+              title={t("tagListInput.clickToAdd")}
             >
               + {option}
             </Badge>

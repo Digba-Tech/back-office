@@ -11,19 +11,21 @@ yours if you are the agent/team **building the back-office client app**.
 | | Owner | Where in this doc |
 |---|---|---|
 | Creating the 3 founder Supabase accounts | **Backend/ops team** (run once per environment, needs the service-role key) | §1 — reference only, not your task |
-| Flagging those accounts as admin | **Backend/ops team** (runs a script with the service-role key) | §1 — reference only, not your task |
+| Flagging those accounts as admin + seeding the temp-password flag | **Backend/ops team** (runs a script with the service-role key) | §1 — reference only, not your task |
 | CORS allow-listing the back-office's origin | **Backend/ops team** (edits the backend's env config) | §1 — reference only, not your task |
 | **Building the login screen + Supabase client** | **✅ You (back-office client app)** | §2 |
 | **Forwarding the session JWT on every request** | **✅ You (back-office client app)** | §2 |
+| **Forcing a password change on first login** | **✅ You (back-office client app)** | §2 |
 | **Calling the admin endpoints to manage sources & review requirements** | **✅ You (back-office client app)** | §3 |
 
 **If you are building the client app: you never touch the service-role key, you
 never create or provision accounts, and you don't configure the backend's env.**
-Someone will hand you 3 working founder logins (email + the password they set
-themselves via Supabase) — your app's job starts at "a founder enters their
-email and password into a login form." Everything before that is out of scope
-for you; read §1 only so you understand *why* login works the way it does, not
-because you need to execute any of it.
+Someone will hand you 3 founder logins (email + an ops-set temporary
+password) — your app's job starts at "a founder enters their email and
+temporary password into a login form," and includes prompting them to set
+their own password before they can use the rest of the app (see §2). Everything
+before that first login is out of scope for you; read §1 only so you understand
+*why* login works the way it does, not because you need to execute any of it.
 
 ---
 
@@ -34,16 +36,25 @@ exists so the login flow in §2 makes sense — nothing here is something the
 client app does or calls.
 
 **The 3 founder accounts.** The backend/ops team creates each founder as a
-normal Supabase Auth user (Dashboard → Authentication → Users → "Invite user" —
-the founder gets an email and sets their own password; nobody else ever sees or
-sets it), then runs a one-time operator script
-(`scripts/provision_admin.py founder@email`, using the backend's
-`SUPABASE_SERVICE_KEY`) that stamps `app_metadata: {"role": "admin"}` on their
-account. This is **not an API endpoint** — there is no route on this backend
-that grants admin access, by design. It survives password resets (the flag
-lives on the account, not the credential). If a 4th person ever needs access,
-the backend/ops team runs the script again for them — there's no self-service
-admin signup, ever.
+normal Supabase Auth user directly in the Dashboard (Authentication → Users →
+"Add user", with a temporary password ops sets and hands off out-of-band —
+**not** "Invite user": the invite email just redirects to a link the
+back-office app has no page to handle, so nobody could ever finish signing up
+that way). Ops then runs a one-time operator script from `backend/`, using the
+`SUPABASE_SERVICE_KEY`:
+
+```
+.\.venv\Scripts\python.exe scripts\provision_admin.py <founder@email>
+```
+
+This stamps `app_metadata: {"role": "admin"}` on their account **and**, the
+first time it's run for that account, seeds `user_metadata: {"must_change_password":
+true}` so the client can force them to replace the temp password on first
+login (see §2). This is **not an API endpoint** — there is no route on this
+backend that grants admin access, by design. The admin flag survives password
+resets (it lives on the account, not the credential). If a 4th person ever
+needs access, the backend/ops team repeats this same process for them —
+there's no self-service admin signup, ever.
 
 **CORS.** The backend/ops team adds the back-office app's deployed origin
 (whatever host/port it runs on) to the backend's `ALLOWED_ORIGINS` env var in
@@ -82,6 +93,30 @@ the JWT every founder gets when they log in (see §2).
    ```
    Authorization: Bearer <session.access_token>
    ```
+
+### Forcing a password change on first login
+
+Every founder's account starts with a temporary password ops set by hand (§1),
+so the app must not let them use it past the first login. After sign-in,
+check the session user's `user_metadata.must_change_password`:
+
+- **`true`** — block access to the rest of the app behind a "set your
+  password" screen. On submit, call the SDK's own update, clearing the flag in
+  the same call:
+  ```ts
+  await supabase.auth.updateUser({
+    password: newPassword,
+    data: { must_change_password: false },
+  });
+  ```
+  This works without any admin/service-role access — Supabase lets a signed-in
+  user update their own `user_metadata` and password, unlike `app_metadata`
+  (admin-only, see §1). Re-fetch or refresh the session afterward so the
+  cleared flag takes effect immediately, not just on next login.
+- **`false` or absent** — proceed to the normal app.
+
+This flag is unrelated to the `app_metadata.role` admin check (§1/§3) — it
+only gates the client's own UI and is never checked by this backend.
 
 ### How the backend responds
 

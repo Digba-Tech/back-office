@@ -58,10 +58,22 @@ export type RequirementEdit = Partial<{
   due_year: number | null
 }>
 
+// The source + stored text version a requirement was extracted from.
+// `is_latest: false` means the source has been re-ingested since — the
+// requirement's `text` may no longer match what's currently on the source.
+export type Citation = {
+  id: string
+  name: string
+  url: string | null
+  content_md: string
+  scraped_at: string | null
+  is_latest: boolean
+}
+
 // GET /admin/requirements/{id}
 export type RequirementWithCitation = {
   requirement: Requirement
-  citation: string | null
+  citation: Citation | null
 }
 
 export type SourceType = "pdf" | "webpage" | "rss_feed"
@@ -146,10 +158,10 @@ export type SourceTextVersion = {
 }
 
 export type SourceTexts = {
-  versions: SourceTextVersion[]
-  text_id: string
+  source_id: string
+  history: SourceTextVersion[]
+  text_id: string | null
   content: string
-  offset: number
-  limit: number
-  total_length: number
+  content_char_count: number
+  truncated: boolean
 }

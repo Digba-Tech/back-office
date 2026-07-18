@@ -1,6 +1,8 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router-dom"
 
+import { InfoTooltip, LabelWithInfo } from "@/components/info-tooltip"
 import { TagListInput } from "@/components/tag-list-input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { formatDateTime } from "@/lib/format"
 
 import { useSourcesVocabulary } from "@/pages/sources/queries"
 import type { CheckKind, Criticality, Requirement } from "@/lib/types"
@@ -38,6 +41,7 @@ const CHECK_KINDS: CheckKind[] = ["document_presence", "deterministic", "llm"]
 const CRITICALITIES: Criticality[] = ["core", "mandatory", "improvement"]
 
 export function RequirementDetail() {
+  const { t, i18n } = useTranslation()
   const { id = "" } = useParams()
   const navigate = useNavigate()
   const { data, isLoading, error } = useRequirement(id)
@@ -54,7 +58,7 @@ export function RequirementDetail() {
   if (error || !data) {
     return (
       <p className="text-destructive text-sm">
-        Failed to load requirement: {error?.message}
+        {t("requirements.detail.loadFailed", { message: error?.message })}
       </p>
     )
   }
@@ -63,17 +67,16 @@ export function RequirementDetail() {
   const reviewable = requirement.status === "draft"
 
   async function onApprove() {
-    if (!window.confirm(
-      "Approving supersedes the prior active version and goes live for every " +
-        "customer in scope immediately. Continue?"
-    )) {
+    if (!window.confirm(t("requirements.detail.approveConfirm"))) {
       return
     }
     setActionError(null)
     try {
       await approve.mutateAsync()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Approve failed")
+      setActionError(
+        err instanceof Error ? err.message : t("requirements.detail.approveFailed")
+      )
     }
   }
 
@@ -84,7 +87,9 @@ export function RequirementDetail() {
       setRejectOpen(false)
       setRejectReason("")
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Reject failed")
+      setActionError(
+        err instanceof Error ? err.message : t("requirements.detail.rejectFailed")
+      )
     }
   }
 
@@ -97,36 +102,48 @@ export function RequirementDetail() {
             <Badge variant="outline">{requirement.requirement_key}</Badge>
             <Badge variant="outline">v{requirement.version}</Badge>
             <Badge variant={requirement.status === "active" ? "default" : "secondary"}>
-              {requirement.status}
+              {t(`enums.requirementStatus.${requirement.status}`)}
             </Badge>
-            <Badge variant="outline">{requirement.criticality}</Badge>
+            <Badge variant="outline">{t(`enums.criticality.${requirement.criticality}`)}</Badge>
           </div>
           {requirement.reviewed_by && (
             <p className="text-muted-foreground mt-2 text-sm">
-              Reviewed by {requirement.reviewed_by}
-              {requirement.reviewed_at &&
-                ` on ${new Date(requirement.reviewed_at).toLocaleString()}`}
+              {requirement.reviewed_at
+                ? t("requirements.detail.reviewedByOn", {
+                    name: requirement.reviewed_by,
+                    date: formatDateTime(requirement.reviewed_at, i18n.language),
+                  })
+                : t("requirements.detail.reviewedByOnly", {
+                    name: requirement.reviewed_by,
+                  })}
             </p>
           )}
           {requirement.rejection_reason && (
             <p className="text-destructive mt-1 text-sm">
-              Rejection reason: {requirement.rejection_reason}
+              {t("requirements.detail.rejectionReason", {
+                reason: requirement.rejection_reason,
+              })}
             </p>
           )}
         </div>
 
         {reviewable ? (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">Reject</Button>
+                <Button variant="outline">{t("requirements.detail.reject")}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Reject requirement</DialogTitle>
+                  <DialogTitle>{t("requirements.detail.rejectDialogTitle")}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-2">
-                  <Label htmlFor="reject-reason">Reason (required, audit trail)</Label>
+                  <LabelWithInfo
+                    htmlFor="reject-reason"
+                    info={t("requirements.detail.rejectReasonInfo")}
+                  >
+                    {t("requirements.detail.rejectReasonLabel")}
+                  </LabelWithInfo>
                   <Textarea
                     id="reject-reason"
                     value={rejectReason}
@@ -139,17 +156,27 @@ export function RequirementDetail() {
                     disabled={!rejectReason.trim() || reject.isPending}
                     onClick={onReject}
                   >
-                    {reject.isPending ? "Rejecting…" : "Reject"}
+                    {reject.isPending
+                      ? t("requirements.detail.rejecting")
+                      : t("requirements.detail.reject")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <InfoTooltip>{t("requirements.detail.rejectInfo")}</InfoTooltip>
             <Button onClick={onApprove} disabled={approve.isPending}>
-              {approve.isPending ? "Approving…" : "Approve"}
+              {approve.isPending
+                ? t("requirements.detail.approving")
+                : t("requirements.detail.approve")}
             </Button>
+            <InfoTooltip>{t("requirements.detail.approveInfo")}</InfoTooltip>
           </div>
         ) : (
-          <Badge variant="outline">Not reviewable ({requirement.status})</Badge>
+          <Badge variant="outline">
+            {t("requirements.detail.notReviewable", {
+              status: t(`enums.requirementStatus.${requirement.status}`),
+            })}
+          </Badge>
         )}
       </div>
 
@@ -162,7 +189,7 @@ export function RequirementDetail() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Extracted requirement</CardTitle>
+            <CardTitle>{t("requirements.detail.extractedCard")}</CardTitle>
           </CardHeader>
           <CardContent>
             <RequirementEditForm
@@ -176,26 +203,55 @@ export function RequirementDetail() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Source citation</CardTitle>
+            <CardTitle>{t("requirements.detail.citationCard")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-2 text-sm">
-              The exact passage this was extracted from — verify it's not
-              hallucinated before approving.
+              {t("requirements.detail.citationHelp")}
             </p>
             {citation ? (
-              <pre className="max-h-[32rem] overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
-                {citation}
-              </pre>
+              <div className="grid gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {citation.url ? (
+                    <a
+                      href={citation.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium hover:underline"
+                    >
+                      {citation.name}
+                    </a>
+                  ) : (
+                    <span className="font-medium">{citation.name}</span>
+                  )}
+                  {citation.scraped_at && (
+                    <span className="text-muted-foreground">
+                      {t("requirements.detail.citationScrapedAt", {
+                        date: formatDateTime(citation.scraped_at, i18n.language),
+                      })}
+                    </span>
+                  )}
+                  {!citation.is_latest && (
+                    <Badge variant="destructive">
+                      {t("requirements.detail.citationStale")}
+                    </Badge>
+                  )}
+                </div>
+                <pre className="max-h-[32rem] overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
+                  {citation.content_md || t("requirements.detail.citationNoContent")}
+                </pre>
+              </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No citation on record.</p>
+              <p className="text-muted-foreground text-sm">
+                {t("requirements.detail.citationNone")}
+              </p>
             )}
           </CardContent>
         </Card>
       </div>
 
       <Button variant="ghost" className="w-fit" onClick={() => navigate("/requirements")}>
-        ← Back to review queue
+        {t("requirements.detail.backToQueue")}
       </Button>
     </div>
   )
@@ -212,6 +268,7 @@ function RequirementEditForm({
     body: Parameters<ReturnType<typeof useUpdateRequirement>["mutateAsync"]>[0]
   ) => Promise<unknown>
 }) {
+  const { t } = useTranslation()
   const [title, setTitle] = React.useState(requirement.title)
   const [text, setText] = React.useState(requirement.text)
   const [sectionRef, setSectionRef] = React.useState(requirement.section_ref ?? "")
@@ -265,7 +322,7 @@ function RequirementEditForm({
         expected_evidence: { document_types: documentTypes, hint: hint || null },
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save")
+      setError(err instanceof Error ? err.message : t("requirements.detail.saveFailed"))
     } finally {
       setSaving(false)
     }
@@ -274,11 +331,11 @@ function RequirementEditForm({
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="req-title">Title</Label>
+        <Label htmlFor="req-title">{t("requirements.detail.fields.title.label")}</Label>
         <Input id="req-title" value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="req-text">Text</Label>
+        <Label htmlFor="req-text">{t("requirements.detail.fields.text.label")}</Label>
         <Textarea
           id="req-text"
           value={text}
@@ -287,7 +344,9 @@ function RequirementEditForm({
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="req-section">Section reference</Label>
+        <Label htmlFor="req-section">
+          {t("requirements.detail.fields.sectionRef.label")}
+        </Label>
         <Input
           id="req-section"
           value={sectionRef}
@@ -297,7 +356,9 @@ function RequirementEditForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label>Check kind</Label>
+          <LabelWithInfo info={t("requirements.detail.fields.checkKind.info")}>
+            {t("requirements.detail.fields.checkKind.label")}
+          </LabelWithInfo>
           <Select value={checkKind} onValueChange={(v) => setCheckKind(v as CheckKind)}>
             <SelectTrigger>
               <SelectValue />
@@ -305,14 +366,16 @@ function RequirementEditForm({
             <SelectContent>
               {CHECK_KINDS.map((kind) => (
                 <SelectItem key={kind} value={kind}>
-                  {kind}
+                  {t(`enums.checkKind.${kind}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="grid gap-2">
-          <Label>Criticality</Label>
+          <LabelWithInfo info={t("requirements.detail.fields.criticality.info")}>
+            {t("requirements.detail.fields.criticality.label")}
+          </LabelWithInfo>
           <Select
             value={criticality}
             onValueChange={(v) => setCriticality(v as Criticality)}
@@ -323,7 +386,7 @@ function RequirementEditForm({
             <SelectContent>
               {CRITICALITIES.map((c) => (
                 <SelectItem key={c} value={c}>
-                  {c}
+                  {t(`enums.criticality.${c}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -333,7 +396,12 @@ function RequirementEditForm({
 
       {checkKind === "deterministic" && (
         <div className="grid gap-2">
-          <Label htmlFor="req-check-code">Check code (required for deterministic checks)</Label>
+          <LabelWithInfo
+            htmlFor="req-check-code"
+            info={t("requirements.detail.fields.checkCode.info")}
+          >
+            {t("requirements.detail.fields.checkCode.label")}
+          </LabelWithInfo>
           <Input
             id="req-check-code"
             value={checkCode}
@@ -350,50 +418,65 @@ function RequirementEditForm({
             checked={dueImmediately}
             onChange={(e) => setDueImmediately(e.target.checked)}
           />
-          <Label htmlFor="due-immediately">Due immediately (no due year)</Label>
+          <LabelWithInfo
+            htmlFor="due-immediately"
+            info={t("requirements.detail.fields.dueImmediately.info")}
+          >
+            {t("requirements.detail.fields.dueImmediately.label")}
+          </LabelWithInfo>
         </div>
         {!dueImmediately && (
           <Input
             type="number"
             value={dueYear}
             onChange={(e) => setDueYear(e.target.value)}
-            placeholder="Due year"
+            placeholder={t("requirements.detail.fields.dueYearPlaceholder")}
             className="w-32"
           />
         )}
       </div>
 
       <TagListInput
-        label="Sectors"
+        label={t("requirements.detail.fields.sectors.label")}
         value={sectors}
         onChange={setSectors}
         options={vocabulary?.applies_to.sectors}
+        info={t("requirements.detail.fields.sectors.info")}
       />
       <TagListInput
-        label="Operating countries"
+        label={t("requirements.detail.fields.operatingCountries.label")}
         value={operatingCountries}
         onChange={setOperatingCountries}
         options={vocabulary?.applies_to.operating_countries}
+        info={t("requirements.detail.fields.operatingCountries.info")}
       />
       <TagListInput
-        label="Export regions"
+        label={t("requirements.detail.fields.exportRegions.label")}
         value={exportRegions}
         onChange={setExportRegions}
         options={vocabulary?.applies_to.export_regions}
+        info={t("requirements.detail.fields.exportRegions.info")}
       />
       <TagListInput
-        label="Certifications"
+        label={t("requirements.detail.fields.certifications.label")}
         value={certifications}
         onChange={setCertifications}
         options={vocabulary?.applies_to.certifications}
+        info={t("requirements.detail.fields.certifications.info")}
       />
       <TagListInput
-        label="Expected evidence: document types"
+        label={t("requirements.detail.fields.documentTypes.label")}
         value={documentTypes}
         onChange={setDocumentTypes}
+        info={t("requirements.detail.fields.documentTypes.info")}
       />
       <div className="grid gap-2">
-        <Label htmlFor="req-hint">Expected evidence: hint</Label>
+        <LabelWithInfo
+          htmlFor="req-hint"
+          info={t("requirements.detail.fields.hint.info")}
+        >
+          {t("requirements.detail.fields.hint.label")}
+        </LabelWithInfo>
         <Textarea id="req-hint" value={hint} onChange={(e) => setHint(e.target.value)} />
       </div>
 
@@ -404,7 +487,7 @@ function RequirementEditForm({
       )}
 
       <Button type="submit" disabled={saving} className="w-fit">
-        {saving ? "Saving…" : "Save changes"}
+        {saving ? t("common.saving") : t("common.save")}
       </Button>
     </form>
   )

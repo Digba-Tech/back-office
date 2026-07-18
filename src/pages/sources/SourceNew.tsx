@@ -1,6 +1,8 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
+import { LabelWithInfo } from "@/components/info-tooltip"
 import { TagListInput } from "@/components/tag-list-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +22,7 @@ import type { ScrapeFrequency, SourceType } from "@/lib/types"
 import { useCreateSource, useCreateSourcePdf, useSourcesVocabulary } from "./queries"
 
 export function SourceNew() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const vocabulary = useSourcesVocabulary()
   const createSource = useCreateSource()
@@ -46,14 +49,14 @@ export function SourceNew() {
     setError(null)
 
     if (!name.trim()) {
-      setError("Name is required")
+      setError(t("sources.new.errorNameRequired"))
       return
     }
 
     try {
       if (mode === "url") {
         if (!url.trim()) {
-          setError("URL is required")
+          setError(t("sources.new.errorUrlRequired"))
           return
         }
         const created = await createSource.mutateAsync({
@@ -70,7 +73,7 @@ export function SourceNew() {
         navigate(`/sources/${created.id}`)
       } else {
         if (!file) {
-          setError("Choose a PDF file to upload")
+          setError(t("sources.new.errorFileRequired"))
           return
         }
         const form = new FormData()
@@ -86,47 +89,49 @@ export function SourceNew() {
         navigate(`/sources/${created.id}`)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create source")
+      setError(err instanceof Error ? err.message : t("sources.new.errorFallback"))
     }
   }
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-xl font-semibold">Register a new source</h1>
+      <h1 className="text-xl font-semibold">{t("sources.new.title")}</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>{t("sources.new.detailsCard")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="grid gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t("sources.fields.name.label")}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. EU REACH Regulation"
+                placeholder={t("sources.new.namePlaceholder")}
               />
             </div>
 
             <Tabs value={mode} onValueChange={(v) => setMode(v as "url" | "pdf")}>
               <TabsList>
-                <TabsTrigger value="url">URL-located source</TabsTrigger>
-                <TabsTrigger value="pdf">Upload PDF</TabsTrigger>
+                <TabsTrigger value="url">{t("sources.new.tabUrl")}</TabsTrigger>
+                <TabsTrigger value="pdf">{t("sources.new.tabPdf")}</TabsTrigger>
               </TabsList>
               <TabsContent value="url" className="grid gap-4 pt-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="url">URL</Label>
+                  <Label htmlFor="url">{t("sources.fields.url.label")}</Label>
                   <Input
                     id="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://…"
+                    placeholder={t("sources.new.urlPlaceholder")}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Type</Label>
+                  <LabelWithInfo info={t("sources.fields.type.info")}>
+                    {t("sources.fields.type.label")}
+                  </LabelWithInfo>
                   <Select
                     value={urlType}
                     onValueChange={(v) => setUrlType(v as SourceType)}
@@ -135,25 +140,22 @@ export function SourceNew() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {vocabulary.data?.source_types
-                        .filter((t) => t !== "pdf")
-                        .map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        )) ?? (
-                        <>
-                          <SelectItem value="webpage">webpage</SelectItem>
-                          <SelectItem value="rss_feed">rss_feed</SelectItem>
-                        </>
-                      )}
+                      {(
+                        vocabulary.data?.source_types.filter(
+                          (type) => type !== "pdf"
+                        ) ?? (["webpage", "rss_feed"] as SourceType[])
+                      ).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {t(`enums.sourceType.${type}`)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </TabsContent>
               <TabsContent value="pdf" className="grid gap-4 pt-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="file">PDF file</Label>
+                  <Label htmlFor="file">{t("sources.new.fileLabel")}</Label>
                   <Input
                     id="file"
                     type="file"
@@ -165,7 +167,9 @@ export function SourceNew() {
             </Tabs>
 
             <div className="grid gap-2">
-              <Label>Scrape frequency</Label>
+              <LabelWithInfo info={t("sources.fields.scrapeFrequency.info")}>
+                {t("sources.fields.scrapeFrequency.label")}
+              </LabelWithInfo>
               <Select
                 value={scrapeFrequency}
                 onValueChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
@@ -180,7 +184,7 @@ export function SourceNew() {
                     "monthly",
                   ]).map((freq) => (
                     <SelectItem key={freq} value={freq}>
-                      {freq}
+                      {t(`enums.scrapeFrequency.${freq}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,32 +197,41 @@ export function SourceNew() {
                 checked={deepCrawl}
                 onCheckedChange={(checked) => setDeepCrawl(checked === true)}
               />
-              <Label htmlFor="deep_crawl">Deep crawl</Label>
+              <LabelWithInfo
+                htmlFor="deep_crawl"
+                info={t("sources.fields.deepCrawl.info")}
+              >
+                {t("sources.fields.deepCrawl.label")}
+              </LabelWithInfo>
             </div>
 
             <TagListInput
-              label="Sectors"
+              label={t("sources.fields.sectors.label")}
               value={sectors}
               onChange={setSectors}
               options={vocabulary.data?.applies_to.sectors}
+              info={t("sources.fields.sectors.info")}
             />
             <TagListInput
-              label="Operating countries"
+              label={t("sources.fields.operatingCountries.label")}
               value={operatingCountries}
               onChange={setOperatingCountries}
               options={vocabulary.data?.applies_to.operating_countries}
+              info={t("sources.fields.operatingCountries.info")}
             />
             <TagListInput
-              label="Export regions"
+              label={t("sources.fields.exportRegions.label")}
               value={exportRegions}
               onChange={setExportRegions}
               options={vocabulary.data?.applies_to.export_regions}
+              info={t("sources.fields.exportRegions.info")}
             />
             <TagListInput
-              label="Certifications"
+              label={t("sources.fields.certifications.label")}
               value={certifications}
               onChange={setCertifications}
               options={vocabulary.data?.applies_to.certifications}
+              info={t("sources.fields.certifications.info")}
             />
 
             {error && (
@@ -228,7 +241,7 @@ export function SourceNew() {
             )}
 
             <Button type="submit" disabled={pending} className="w-fit">
-              {pending ? "Creating…" : "Register source"}
+              {pending ? t("sources.new.submitting") : t("sources.new.submit")}
             </Button>
           </form>
         </CardContent>

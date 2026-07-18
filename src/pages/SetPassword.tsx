@@ -2,7 +2,6 @@ import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
-import { Navigate, useLocation } from "react-router-dom"
 import { z } from "zod"
 
 import { useAuth } from "@/auth/AuthProvider"
@@ -25,37 +24,38 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
-type LoginValues = { email: string; password: string }
+type SetPasswordValues = { password: string; confirmPassword: string }
 
-export function Login() {
+// Blocks the rest of the app until a founder replaces the ops-set temp
+// password (guide §2 "Forcing a password change on first login").
+export function SetPassword() {
   const { t } = useTranslation()
-  const { session, signIn } = useAuth()
-  const location = useLocation()
+  const { completePasswordChange, signOut } = useAuth()
   const [error, setError] = React.useState<string | null>(null)
 
-  const loginSchema = z.object({
-    email: z.string().email(t("login.emailInvalid")),
-    password: z.string().min(1, t("login.passwordRequired")),
+  const setPasswordSchema = z
+    .object({
+      password: z.string().min(8, t("setPassword.minLength")),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: t("setPassword.mismatch"),
+      path: ["confirmPassword"],
+    })
+
+  const form = useForm<SetPasswordValues>({
+    resolver: zodResolver(setPasswordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
   })
 
-  const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
-  })
-
-  if (session) {
-    const from =
-      (location.state as { from?: { pathname?: string } } | null)?.from
-        ?.pathname ?? "/sources"
-    return <Navigate to={from} replace />
-  }
-
-  async function onSubmit(values: LoginValues) {
+  async function onSubmit(values: SetPasswordValues) {
     setError(null)
     try {
-      await signIn(values.email, values.password)
+      await completePasswordChange(values.password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("login.failedFallback"))
+      setError(
+        err instanceof Error ? err.message : t("setPassword.failedFallback")
+      )
     }
   }
 
@@ -66,25 +66,22 @@ export function Login() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("login.title")}</CardTitle>
-          <CardDescription>{t("login.description")}</CardDescription>
+          <CardTitle>{t("setPassword.title")}</CardTitle>
+          <CardDescription>{t("setPassword.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="grid gap-4"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("login.emailLabel")}</FormLabel>
+                    <FormLabel>{t("setPassword.newPasswordLabel")}</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
-                        autoComplete="email"
+                        type="password"
+                        autoComplete="new-password"
                         {...field}
                       />
                     </FormControl>
@@ -94,14 +91,14 @@ export function Login() {
               />
               <FormField
                 control={form.control}
-                name="password"
+                name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("login.passwordLabel")}</FormLabel>
+                    <FormLabel>{t("setPassword.confirmPasswordLabel")}</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         {...field}
                       />
                     </FormControl>
@@ -116,8 +113,16 @@ export function Login() {
               )}
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting
-                  ? t("login.signingIn")
-                  : t("login.signIn")}
+                  ? t("setPassword.submitting")
+                  : t("setPassword.submit")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-fit justify-self-center"
+                onClick={() => void signOut()}
+              >
+                {t("setPassword.logoutInstead")}
               </Button>
             </form>
           </Form>

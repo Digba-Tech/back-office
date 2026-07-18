@@ -1,6 +1,9 @@
+import { useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
+import { InfoTooltip, LabelWithInfo } from "@/components/info-tooltip"
 import { TagListInput } from "@/components/tag-list-input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -18,9 +21,11 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { formatDateTime } from "@/lib/format"
 
 import type { ScrapeFrequency } from "@/lib/types"
 import {
+  sourcesKeys,
   useIngestStatus,
   useSetSourceActive,
   useSource,
@@ -30,8 +35,16 @@ import {
   useUpdateSource,
 } from "./queries"
 
+// ~15 minutes at the 5s poll interval (see useIngestStatus) — a soft cap so a
+// run that never reports a distinguishable change (e.g. the same failure
+// twice in a row) doesn't poll forever. Some ingestion jobs (deep crawls,
+// large PDFs) legitimately take a long time, so this errs generous.
+const MAX_POLL_ATTEMPTS = 180
+
 export function SourceDetail() {
+  const { t, i18n } = useTranslation()
   const { id = "" } = useParams()
+  const qc = useQueryClient()
   const source = useSource(id)
   const vocabulary = useSourcesVocabulary()
   const setActive = useSetSourceActive(id)
@@ -42,22 +55,66 @@ export function SourceDetail() {
   const ingestStatus = useIngestStatus(id, { poll: polling })
   const [deepIngest, setDeepIngest] = React.useState(false)
 
+  // Snapshot of ingest-status right before triggering a run — re-ingesting a
+  // source that already has a last_scraped_at/last_scrape_error would
+  // otherwise look "done" on the very first poll tick, before the new run
+  // has actually finished (a real risk in prod's async queue mode; masked
+  // locally only because inline mode blocks until the job completes).
+  // Comparing against this baseline instead of a bare truthy check is what
+  // actually tells "old result" apart from "new result".
+  const ingestBaselineRef = React.useRef<{
+    last_scraped_at: string | null
+    last_scrape_error: string | null
+  } | null>(null)
+  const pollAttemptsRef = React.useRef(0)
+  const [pollTimedOut, setPollTimedOut] = React.useState(false)
+
   const [selectedTextId, setSelectedTextId] = React.useState<string | undefined>()
   const texts = useSourceTexts(id, { text_id: selectedTextId })
 
-  // Stop auto-polling once the backend reports a result for this run.
+  // Stop auto-polling once the current run's outcome actually differs from
+  // the pre-trigger baseline, and refresh the source record + version
+  // history so it shows up — this effect is the only place that knows the
+  // run finished, since inline job execution (dev) can complete before the
+  // mutation's own onSuccess fires and queue mode (prod) only surfaces
+  // completion through this poll. dataUpdatedAt (not just data) is in the
+  // deps so this still runs on every poll tick even when the fetched value
+  // is unchanged — TanStack Query's structural sharing would otherwise keep
+  // the same `data` reference and skip the effect, breaking attempt counting.
   React.useEffect(() => {
     if (!polling) return
-    if (ingestStatus.data?.last_scrape_error || ingestStatus.data?.last_scraped_at) {
+    const baseline = ingestBaselineRef.current
+    if (!baseline) return
+    const current = ingestStatus.data
+    if (
+      current &&
+      (current.last_scraped_at !== baseline.last_scraped_at ||
+        current.last_scrape_error !== baseline.last_scrape_error)
+    ) {
       setPolling(false)
+      ingestBaselineRef.current = null
+      pollAttemptsRef.current = 0
+      qc.invalidateQueries({ queryKey: sourcesKeys.detail(id) })
+      // Partial key (no text_id) so it matches useSourceTexts regardless of
+      // which version, if any, is currently selected.
+      qc.invalidateQueries({ queryKey: ["sources", "texts", id] })
+      return
     }
-  }, [polling, ingestStatus.data])
+
+    pollAttemptsRef.current += 1
+    if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+      setPolling(false)
+      ingestBaselineRef.current = null
+      pollAttemptsRef.current = 0
+      setPollTimedOut(true)
+    }
+  }, [polling, ingestStatus.data, ingestStatus.dataUpdatedAt, qc, id])
 
   if (source.isLoading) return <Skeleton className="h-64 w-full" />
   if (source.error || !source.data) {
     return (
       <p className="text-destructive text-sm">
-        Failed to load source: {source.error?.message}
+        {t("sources.detail.loadFailed", { message: source.error?.message })}
       </p>
     )
   }
@@ -65,6 +122,12 @@ export function SourceDetail() {
   const data = source.data
 
   async function onTriggerIngest() {
+    ingestBaselineRef.current = {
+      last_scraped_at: data.last_scraped_at,
+      last_scrape_error: data.last_scrape_error,
+    }
+    pollAttemptsRef.current = 0
+    setPollTimedOut(false)
     await triggerIngest.mutateAsync(deepIngest)
     setPolling(true)
   }
@@ -75,39 +138,50 @@ export function SourceDetail() {
         <div>
           <h1 className="text-xl font-semibold">{data.name}</h1>
           <div className="mt-1 flex items-center gap-2">
-            <Badge variant="outline">{data.source_type}</Badge>
+            <Badge variant="outline">{t(`enums.sourceType.${data.source_type}`)}</Badge>
             <Badge variant={data.is_active ? "default" : "secondary"}>
-              {data.is_active ? "Active" : "Inactive"}
+              {data.is_active
+                ? t("sources.list.statActive")
+                : t("sources.list.statInactive")}
             </Badge>
-            {data.applies_to_locked && <Badge variant="outline">Scoping locked</Badge>}
+            {data.applies_to_locked && (
+              <Badge variant="outline">{t("sources.detail.scopingLocked")}</Badge>
+            )}
           </div>
         </div>
-        <Button
-          variant="outline"
-          disabled={setActive.isPending}
-          onClick={() => setActive.mutate(!data.is_active)}
-        >
-          {data.is_active ? "Deactivate" : "Activate"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <InfoTooltip>
+            {data.is_active
+              ? t("sources.detail.deactivateInfo")
+              : t("sources.detail.activateInfo")}
+          </InfoTooltip>
+          <Button
+            variant="outline"
+            disabled={setActive.isPending}
+            onClick={() => setActive.mutate(!data.is_active)}
+          >
+            {data.is_active ? t("sources.detail.deactivate") : t("sources.detail.activate")}
+          </Button>
+        </div>
       </div>
 
       {data.last_scrape_error && (
         <Alert variant="destructive">
-          <AlertTitle>Last scrape failed</AlertTitle>
+          <AlertTitle>{t("sources.detail.lastScrapeFailedTitle")}</AlertTitle>
           <AlertDescription>{data.last_scrape_error}</AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Ingestion</CardTitle>
+          <CardTitle>{t("sources.detail.ingestionCard")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-muted-foreground text-sm">
-            Last scraped:{" "}
+            {t("sources.detail.lastScrapedLabel")}{" "}
             {data.last_scraped_at
-              ? new Date(data.last_scraped_at).toLocaleString()
-              : "Never"}
+              ? formatDateTime(data.last_scraped_at, i18n.language)
+              : t("sources.list.never")}
           </p>
           <div className="flex items-center gap-3">
             <Checkbox
@@ -115,18 +189,28 @@ export function SourceDetail() {
               checked={deepIngest}
               onCheckedChange={(checked) => setDeepIngest(checked === true)}
             />
-            <Label htmlFor="deep_ingest">Deep crawl this run</Label>
+            <LabelWithInfo
+              htmlFor="deep_ingest"
+              info={t("sources.detail.deepCrawlThisRun.info")}
+            >
+              {t("sources.detail.deepCrawlThisRun.label")}
+            </LabelWithInfo>
             <Button
               onClick={onTriggerIngest}
               disabled={triggerIngest.isPending || polling}
             >
-              {polling ? "Ingesting…" : "Run ingestion"}
+              {polling ? t("sources.detail.ingesting") : t("sources.detail.runIngestion")}
             </Button>
+            <InfoTooltip>{t("sources.detail.runIngestionInfo")}</InfoTooltip>
           </div>
           {polling && (
             <p className="text-muted-foreground text-sm">
-              Polling ingest-status every 5s — this runs a headless browser,
-              it can take a while.
+              {t("sources.detail.pollingNote")}
+            </p>
+          )}
+          {pollTimedOut && (
+            <p className="text-muted-foreground text-sm">
+              {t("sources.detail.pollTimedOut")}
             </p>
           )}
         </CardContent>
@@ -134,7 +218,7 @@ export function SourceDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Edit</CardTitle>
+          <CardTitle>{t("sources.detail.editCard")}</CardTitle>
         </CardHeader>
         <CardContent>
           <SourceEditForm
@@ -148,14 +232,24 @@ export function SourceDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Version history</CardTitle>
+          <CardTitle>{t("sources.detail.versionHistoryCard")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
           {texts.isLoading && <Skeleton className="h-24 w-full" />}
-          {texts.data && (
+          {texts.error && (
+            <p className="text-destructive text-sm">
+              {t("sources.detail.loadTextsFailed", { message: texts.error.message })}
+            </p>
+          )}
+          {texts.data && texts.data.history.length === 0 && (
+            <p className="text-muted-foreground text-sm">
+              {t("sources.detail.noIngestedText")}
+            </p>
+          )}
+          {texts.data && texts.data.history.length > 0 && (
             <>
               <div className="flex flex-wrap gap-2">
-                {texts.data.versions.map((version) => (
+                {texts.data.history.map((version) => (
                   <Button
                     key={version.id}
                     size="sm"
@@ -163,13 +257,14 @@ export function SourceDetail() {
                     onClick={() => setSelectedTextId(version.id)}
                     title={version.content_hash}
                   >
-                    {new Date(version.scraped_at).toLocaleString()}
+                    {formatDateTime(version.scraped_at, i18n.language)}
                   </Button>
                 ))}
               </div>
               <Separator />
               <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
                 {texts.data.content}
+                {texts.data.truncated && "…"}
               </pre>
             </>
           )}
@@ -190,6 +285,7 @@ function SourceEditForm({
     body: Parameters<ReturnType<typeof useUpdateSource>["mutateAsync"]>[0]
   ) => Promise<unknown>
 }) {
+  const { t } = useTranslation()
   const [name, setName] = React.useState(source.name)
   const [url, setUrl] = React.useState(source.url ?? "")
   const [scrapeFrequency, setScrapeFrequency] = React.useState<ScrapeFrequency>(
@@ -225,7 +321,7 @@ function SourceEditForm({
         certifications,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save")
+      setError(err instanceof Error ? err.message : t("sources.detail.saveFailed"))
     } finally {
       setSaving(false)
     }
@@ -234,17 +330,19 @@ function SourceEditForm({
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="edit-name">Name</Label>
+        <Label htmlFor="edit-name">{t("sources.fields.name.label")}</Label>
         <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       {source.url !== null && (
         <div className="grid gap-2">
-          <Label htmlFor="edit-url">URL</Label>
+          <Label htmlFor="edit-url">{t("sources.fields.url.label")}</Label>
           <Input id="edit-url" value={url} onChange={(e) => setUrl(e.target.value)} />
         </div>
       )}
       <div className="grid gap-2">
-        <Label>Scrape frequency</Label>
+        <LabelWithInfo info={t("sources.fields.scrapeFrequency.info")}>
+          {t("sources.fields.scrapeFrequency.label")}
+        </LabelWithInfo>
         <Select
           value={scrapeFrequency}
           onValueChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
@@ -256,7 +354,7 @@ function SourceEditForm({
             {(vocabulary?.scrape_frequencies ?? ["daily", "weekly", "monthly"]).map(
               (freq) => (
                 <SelectItem key={freq} value={freq}>
-                  {freq}
+                  {t(`enums.scrapeFrequency.${freq}`)}
                 </SelectItem>
               )
             )}
@@ -269,7 +367,12 @@ function SourceEditForm({
           checked={deepCrawl}
           onCheckedChange={(checked) => setDeepCrawl(checked === true)}
         />
-        <Label htmlFor="edit-deep-crawl">Deep crawl</Label>
+        <LabelWithInfo
+          htmlFor="edit-deep-crawl"
+          info={t("sources.fields.deepCrawl.info")}
+        >
+          {t("sources.fields.deepCrawl.label")}
+        </LabelWithInfo>
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -277,34 +380,41 @@ function SourceEditForm({
           checked={appliesToLocked}
           onCheckedChange={(checked) => setAppliesToLocked(checked === true)}
         />
-        <Label htmlFor="edit-locked">
-          Lock scoping (stop re-ingestion from overwriting these fields)
-        </Label>
+        <LabelWithInfo
+          htmlFor="edit-locked"
+          info={t("sources.detail.lockScoping.info")}
+        >
+          {t("sources.detail.lockScoping.label")}
+        </LabelWithInfo>
       </div>
 
       <TagListInput
-        label="Sectors"
+        label={t("sources.fields.sectors.label")}
         value={sectors}
         onChange={setSectors}
         options={vocabulary?.applies_to.sectors}
+        info={t("sources.fields.sectors.info")}
       />
       <TagListInput
-        label="Operating countries"
+        label={t("sources.fields.operatingCountries.label")}
         value={operatingCountries}
         onChange={setOperatingCountries}
         options={vocabulary?.applies_to.operating_countries}
+        info={t("sources.fields.operatingCountries.info")}
       />
       <TagListInput
-        label="Export regions"
+        label={t("sources.fields.exportRegions.label")}
         value={exportRegions}
         onChange={setExportRegions}
         options={vocabulary?.applies_to.export_regions}
+        info={t("sources.fields.exportRegions.info")}
       />
       <TagListInput
-        label="Certifications"
+        label={t("sources.fields.certifications.label")}
         value={certifications}
         onChange={setCertifications}
         options={vocabulary?.applies_to.certifications}
+        info={t("sources.fields.certifications.info")}
       />
 
       {error && (
@@ -314,7 +424,7 @@ function SourceEditForm({
       )}
 
       <Button type="submit" disabled={saving} className="w-fit">
-        {saving ? "Saving…" : "Save changes"}
+        {saving ? t("common.saving") : t("common.save")}
       </Button>
     </form>
   )

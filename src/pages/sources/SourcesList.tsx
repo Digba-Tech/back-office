@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -20,10 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatDateTime } from "@/lib/format"
 
 import { useSourcesList, useSourcesMonitoring, useSourcesVocabulary } from "./queries"
 
 export function SourcesList() {
+  const { t, i18n } = useTranslation()
   const [active, setActive] = React.useState<string>("all")
   const [standard, setStandard] = React.useState("")
   const [sourceType, setSourceType] = React.useState<string>("all")
@@ -39,48 +42,51 @@ export function SourcesList() {
   return (
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Knowledge sources</h1>
+        <h1 className="text-xl font-semibold">{t("sources.list.title")}</h1>
         <Button asChild>
-          <Link to="/sources/new">New source</Link>
+          <Link to="/sources/new">{t("sources.list.newSource")}</Link>
         </Button>
       </div>
 
       {monitoring.data && (
         <div className="grid grid-cols-3 gap-4">
-          <MonitoringStat label="Total" value={monitoring.data.total} />
-          <MonitoringStat label="Active" value={monitoring.data.active} />
-          <MonitoringStat label="Inactive" value={monitoring.data.inactive} />
+          <MonitoringStat label={t("sources.list.statTotal")} value={monitoring.data.total} />
+          <MonitoringStat label={t("sources.list.statActive")} value={monitoring.data.active} />
+          <MonitoringStat
+            label={t("sources.list.statInactive")}
+            value={monitoring.data.inactive}
+          />
         </div>
       )}
 
       <div className="flex flex-wrap gap-3">
         <Select value={active} onValueChange={setActive}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Active" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="true">Active only</SelectItem>
-            <SelectItem value="false">Inactive only</SelectItem>
+            <SelectItem value="all">{t("sources.list.filterAllStatuses")}</SelectItem>
+            <SelectItem value="true">{t("sources.list.filterActiveOnly")}</SelectItem>
+            <SelectItem value="false">{t("sources.list.filterInactiveOnly")}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={sourceType} onValueChange={setSourceType}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Source type" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="all">{t("sources.list.filterAllTypes")}</SelectItem>
             {vocabulary.data?.source_types.map((type) => (
               <SelectItem key={type} value={type}>
-                {type}
+                {t(`enums.sourceType.${type}`)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <Input
-          placeholder="Filter by standard…"
+          placeholder={t("sources.list.filterStandardPlaceholder")}
           value={standard}
           onChange={(e) => setStandard(e.target.value)}
           className="w-56"
@@ -91,7 +97,7 @@ export function SourcesList() {
 
       {sources.error && (
         <p className="text-destructive text-sm">
-          Failed to load sources: {sources.error.message}
+          {t("sources.list.loadFailed", { message: sources.error.message })}
         </p>
       )}
 
@@ -99,11 +105,11 @@ export function SourcesList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last scraped</TableHead>
-              <TableHead>Error</TableHead>
+              <TableHead>{t("sources.list.colName")}</TableHead>
+              <TableHead>{t("sources.list.colType")}</TableHead>
+              <TableHead>{t("sources.list.colStatus")}</TableHead>
+              <TableHead>{t("sources.list.colLastScraped")}</TableHead>
+              <TableHead>{t("sources.list.colError")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -118,22 +124,24 @@ export function SourcesList() {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{source.source_type}</Badge>
+                  <Badge variant="outline">{t(`enums.sourceType.${source.source_type}`)}</Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={source.is_active ? "default" : "secondary"}>
-                    {source.is_active ? "Active" : "Inactive"}
+                    {source.is_active
+                      ? t("sources.list.statActive")
+                      : t("sources.list.statInactive")}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {source.last_scraped_at
-                    ? new Date(source.last_scraped_at).toLocaleString()
-                    : "Never"}
+                    ? formatDateTime(source.last_scraped_at, i18n.language)
+                    : t("sources.list.never")}
                 </TableCell>
                 <TableCell>
                   {source.last_scrape_error && (
                     <Badge variant="destructive" title={source.last_scrape_error}>
-                      Error
+                      {t("sources.list.errorBadge")}
                     </Badge>
                   )}
                 </TableCell>
@@ -142,7 +150,7 @@ export function SourcesList() {
             {sources.data.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground text-center">
-                  No sources match these filters.
+                  {t("sources.list.emptyFiltered")}
                 </TableCell>
               </TableRow>
             )}

@@ -33,7 +33,7 @@ export function useSourcesList(filters: SourcesFilters) {
     queryKey: sourcesKeys.list(filters),
     queryFn: () =>
       adminApi.get<KnowledgeSource[]>(
-        `/api/v1/admin/sources${adminApi.query(filters)}`
+        `/admin/sources${adminApi.query(filters)}`
       ),
   })
 }
@@ -41,7 +41,7 @@ export function useSourcesList(filters: SourcesFilters) {
 export function useSource(id: string) {
   return useQuery({
     queryKey: sourcesKeys.detail(id),
-    queryFn: () => adminApi.get<KnowledgeSource>(`/api/v1/admin/sources/${id}`),
+    queryFn: () => adminApi.get<KnowledgeSource>(`/admin/sources/${id}`),
     enabled: !!id,
   })
 }
@@ -50,7 +50,7 @@ export function useSourcesMonitoring() {
   return useQuery({
     queryKey: sourcesKeys.monitoring,
     queryFn: () =>
-      adminApi.get<SourcesMonitoring>("/api/v1/admin/sources/monitoring"),
+      adminApi.get<SourcesMonitoring>("/admin/sources/monitoring"),
   })
 }
 
@@ -58,7 +58,7 @@ export function useSourcesVocabulary() {
   return useQuery({
     queryKey: sourcesKeys.vocabulary,
     queryFn: () =>
-      adminApi.get<SourcesVocabulary>("/api/v1/admin/sources/vocabulary"),
+      adminApi.get<SourcesVocabulary>("/admin/sources/vocabulary"),
     staleTime: Infinity,
   })
 }
@@ -67,7 +67,7 @@ export function useIngestStatus(id: string, { poll = false }: { poll?: boolean }
   return useQuery({
     queryKey: sourcesKeys.ingestStatus(id),
     queryFn: () =>
-      adminApi.get<IngestStatus>(`/api/v1/admin/sources/${id}/ingest-status`),
+      adminApi.get<IngestStatus>(`/admin/sources/${id}/ingest-status`),
     enabled: !!id,
     refetchInterval: poll ? 5000 : false,
   })
@@ -81,7 +81,7 @@ export function useSourceTexts(
     queryKey: sourcesKeys.texts(id, params.text_id),
     queryFn: () =>
       adminApi.get<SourceTexts>(
-        `/api/v1/admin/sources/${id}/texts${adminApi.query(params)}`
+        `/admin/sources/${id}/texts${adminApi.query(params)}`
       ),
     enabled: !!id,
   })
@@ -91,7 +91,7 @@ export function useCreateSource() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: KnowledgeSourceCreate) =>
-      adminApi.post<KnowledgeSource>("/api/v1/admin/sources", body),
+      adminApi.post<KnowledgeSource>("/admin/sources", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: sourcesKeys.all }),
   })
 }
@@ -100,7 +100,7 @@ export function useCreateSourcePdf() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (form: FormData) =>
-      adminApi.postForm<KnowledgeSource>("/api/v1/admin/sources/pdf", form),
+      adminApi.postForm<KnowledgeSource>("/admin/sources/pdf", form),
     onSuccess: () => qc.invalidateQueries({ queryKey: sourcesKeys.all }),
   })
 }
@@ -109,7 +109,7 @@ export function useUpdateSource(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: KnowledgeSourceUpdate) =>
-      adminApi.patch<KnowledgeSource>(`/api/v1/admin/sources/${id}`, body),
+      adminApi.patch<KnowledgeSource>(`/admin/sources/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: sourcesKeys.detail(id) })
       qc.invalidateQueries({ queryKey: sourcesKeys.all })
@@ -122,7 +122,7 @@ export function useSetSourceActive(id: string) {
   return useMutation({
     mutationFn: (activate: boolean) =>
       adminApi.post(
-        `/api/v1/admin/sources/${id}/${activate ? "activate" : "deactivate"}`
+        `/admin/sources/${id}/${activate ? "activate" : "deactivate"}`
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: sourcesKeys.detail(id) })
@@ -135,7 +135,7 @@ export function useTriggerIngest(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (deep: boolean) =>
-      adminApi.post(`/api/v1/admin/sources/${id}/ingest${adminApi.query({ deep })}`),
+      adminApi.post(`/admin/sources/${id}/ingest${adminApi.query({ deep })}`),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: sourcesKeys.ingestStatus(id) }),
   })

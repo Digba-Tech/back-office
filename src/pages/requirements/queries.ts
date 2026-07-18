@@ -24,7 +24,7 @@ export function useRequirementsList(filters: RequirementsFilters) {
     queryKey: requirementsKeys.list(filters),
     queryFn: () =>
       adminApi.get<Requirement[]>(
-        `/api/v1/admin/requirements${adminApi.query(filters)}`
+        `/admin/requirements${adminApi.query(filters)}`
       ),
   })
 }
@@ -33,7 +33,7 @@ export function useRequirement(id: string) {
   return useQuery({
     queryKey: requirementsKeys.detail(id),
     queryFn: () =>
-      adminApi.get<RequirementWithCitation>(`/api/v1/admin/requirements/${id}`),
+      adminApi.get<RequirementWithCitation>(`/admin/requirements/${id}`),
     enabled: !!id,
   })
 }
@@ -42,7 +42,7 @@ export function useUpdateRequirement(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: RequirementEdit) =>
-      adminApi.patch<Requirement>(`/api/v1/admin/requirements/${id}`, body),
+      adminApi.patch<Requirement>(`/admin/requirements/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requirementsKeys.detail(id) })
       qc.invalidateQueries({ queryKey: requirementsKeys.all })
@@ -54,7 +54,7 @@ export function useApproveRequirement(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () =>
-      adminApi.post(`/api/v1/admin/requirements/${id}/approve`),
+      adminApi.post(`/admin/requirements/${id}/approve`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requirementsKeys.detail(id) })
       qc.invalidateQueries({ queryKey: requirementsKeys.all })
@@ -66,7 +66,7 @@ export function useRejectRequirement(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (reason: string) =>
-      adminApi.post(`/api/v1/admin/requirements/${id}/reject`, { reason }),
+      adminApi.post(`/admin/requirements/${id}/reject`, { reason }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: requirementsKeys.detail(id) })
       qc.invalidateQueries({ queryKey: requirementsKeys.all })

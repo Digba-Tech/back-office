@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,7 @@ const STATUS_VARIANT = {
 } as const
 
 export function RequirementsList() {
+  const { t } = useTranslation()
   const [standard, setStandard] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("draft")
 
@@ -39,7 +41,7 @@ export function RequirementsList() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-xl font-semibold">Requirements review</h1>
+      <h1 className="text-xl font-semibold">{t("requirements.list.title")}</h1>
 
       <div className="flex flex-wrap gap-3">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -47,15 +49,17 @@ export function RequirementsList() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="draft">Needs review (draft)</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="deprecated">Deprecated</SelectItem>
-            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="draft">{t("requirements.list.filterDraft")}</SelectItem>
+            <SelectItem value="active">{t("requirements.list.filterActive")}</SelectItem>
+            <SelectItem value="deprecated">
+              {t("requirements.list.filterDeprecated")}
+            </SelectItem>
+            <SelectItem value="all">{t("requirements.list.filterAll")}</SelectItem>
           </SelectContent>
         </Select>
 
         <Input
-          placeholder="Filter by standard…"
+          placeholder={t("requirements.list.standardPlaceholder")}
           value={standard}
           onChange={(e) => setStandard(e.target.value)}
           className="w-56"
@@ -66,7 +70,7 @@ export function RequirementsList() {
 
       {requirements.error && (
         <p className="text-destructive text-sm">
-          Failed to load requirements: {requirements.error.message}
+          {t("requirements.list.loadFailed", { message: requirements.error.message })}
         </p>
       )}
 
@@ -74,11 +78,11 @@ export function RequirementsList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Standard</TableHead>
-              <TableHead>Criticality</TableHead>
-              <TableHead>Due year</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("requirements.list.colTitle")}</TableHead>
+              <TableHead>{t("requirements.list.colStandard")}</TableHead>
+              <TableHead>{t("requirements.list.colCriticality")}</TableHead>
+              <TableHead>{t("requirements.list.colDueYear")}</TableHead>
+              <TableHead>{t("requirements.list.colStatus")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,20 +100,22 @@ export function RequirementsList() {
                   {req.standard} · {req.native_code}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{req.criticality}</Badge>
+                  <Badge variant="outline">{t(`enums.criticality.${req.criticality}`)}</Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {req.due_year ?? "Immediate"}
+                  {req.due_year ?? t("requirements.list.dueImmediate")}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[req.status]}>{req.status}</Badge>
+                  <Badge variant={STATUS_VARIANT[req.status]}>
+                    {t(`enums.requirementStatus.${req.status}`)}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
             {requirements.data.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-muted-foreground text-center">
-                  No requirements match these filters.
+                  {t("requirements.list.emptyFiltered")}
                 </TableCell>
               </TableRow>
             )}

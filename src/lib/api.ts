@@ -1,3 +1,4 @@
+import i18n from "@/lib/i18n"
 import { supabase } from "@/lib/supabase"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -18,7 +19,7 @@ export class ApiError extends Error {
 // backend/ops fix, never something to retry client-side).
 export class ForbiddenError extends ApiError {
   constructor(body?: unknown) {
-    super(403, "Not authorized as admin", body)
+    super(403, i18n.t("api.notAuthorized"), body)
     this.name = "ForbiddenError"
   }
 }
@@ -66,7 +67,7 @@ async function request<T>(
       return request<T>(path, options, { retryOn401: false })
     }
     await supabase.auth.signOut()
-    throw new ApiError(401, "Session expired — please log in again.")
+    throw new ApiError(401, i18n.t("api.sessionExpired"))
   }
 
   if (res.status === 403) {
@@ -84,7 +85,7 @@ async function request<T>(
     }
     throw new ApiError(
       res.status,
-      extractMessage(body, `Request failed with ${res.status}`),
+      extractMessage(body, i18n.t("api.requestFailed", { status: res.status })),
       body
     )
   }

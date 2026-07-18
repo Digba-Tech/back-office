@@ -1,3 +1,6 @@
+import { useTranslation } from "react-i18next"
+
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -8,25 +11,31 @@ export function NotAuthorized({
   email?: string | null
   onSignOut: () => void
 }) {
+  const { t } = useTranslation()
+
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
+    <div className="relative flex min-h-svh items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Not authorized as admin</CardTitle>
+          <CardTitle>{t("notAuthorized.title")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm text-muted-foreground">
           <p>
-            {email ? <>The account <strong>{email}</strong> is</> : "This account is"}{" "}
-            a valid logged-in user, but isn't flagged as an admin.
+            {email ? (
+              <>
+                {t("notAuthorized.bodyWithEmailIntro")} <strong>{email}</strong>{" "}
+                {t("notAuthorized.bodyWithEmailRest")}
+              </>
+            ) : (
+              t("notAuthorized.bodyWithoutEmail")
+            )}
           </p>
-          <p>
-            This is either expected (you're not a founder/admin), or the
-            backend/ops team hasn't run the admin provisioning step for this
-            account yet. Either way, it isn't something this app can fix —
-            contact the backend/ops team.
-          </p>
+          <p>{t("notAuthorized.explanation")}</p>
           <Button onClick={onSignOut} variant="outline" className="w-fit">
-            Log out
+            {t("notAuthorized.logout")}
           </Button>
         </CardContent>
       </Card>

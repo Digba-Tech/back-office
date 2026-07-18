@@ -21,7 +21,7 @@ npm run dev
 |---|---|
 | `VITE_SUPABASE_URL` | Same Supabase project the backend uses. |
 | `VITE_SUPABASE_ANON_KEY` | The project's public anon key — safe to embed in a browser app. Never the service-role key. |
-| `VITE_API_BASE_URL` | Base URL of the backend that serves `/api/v1/admin/*`. |
+| `VITE_API_BASE_URL` | Base URL of the backend, including its `/api/v1` prefix (admin routes live under `/admin` on this) — currently `https://api.digba-tech.com/api/v1`. |
 
 Login only works for accounts the backend/ops team has already flagged as
 admin (`app_metadata.role == "admin"`) — this app has no signup flow and
