@@ -26,6 +26,7 @@ import { formatDateTime } from "@/lib/format"
 import type { ScrapeFrequency } from "@/lib/types"
 import {
   sourcesKeys,
+  useForceExtractRequirements,
   useIngestStatus,
   useSetSourceActive,
   useSource,
@@ -49,6 +50,7 @@ export function SourceDetail() {
   const vocabulary = useSourcesVocabulary()
   const setActive = useSetSourceActive(id)
   const triggerIngest = useTriggerIngest(id)
+  const forceExtract = useForceExtractRequirements(id)
   const updateSource = useUpdateSource(id)
 
   const [polling, setPolling] = React.useState(false)
@@ -211,6 +213,37 @@ export function SourceDetail() {
           {pollTimedOut && (
             <p className="text-muted-foreground text-sm">
               {t("sources.detail.pollTimedOut")}
+            </p>
+          )}
+
+          <Separator />
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              disabled={forceExtract.isPending || data.certifications.length === 0}
+              onClick={() => forceExtract.mutate()}
+            >
+              {forceExtract.isPending
+                ? t("sources.detail.forceExtracting")
+                : t("sources.detail.forceExtract")}
+            </Button>
+            <InfoTooltip>
+              {data.certifications.length === 0
+                ? t("sources.detail.forceExtractNoCertification")
+                : t("sources.detail.forceExtractInfo")}
+            </InfoTooltip>
+          </div>
+          {forceExtract.isSuccess && (
+            <p className="text-muted-foreground text-sm">
+              {t("sources.detail.forceExtractQueued")}
+            </p>
+          )}
+          {forceExtract.error && (
+            <p className="text-destructive text-sm">
+              {t("sources.detail.forceExtractFailed", {
+                message: forceExtract.error.message,
+              })}
             </p>
           )}
         </CardContent>

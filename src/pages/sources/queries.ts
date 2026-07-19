@@ -140,3 +140,12 @@ export function useTriggerIngest(id: string) {
       qc.invalidateQueries({ queryKey: sourcesKeys.ingestStatus(id) }),
   })
 }
+
+export function useForceExtractRequirements(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => adminApi.post(`/admin/sources/${id}/extract-requirements`),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: sourcesKeys.ingestStatus(id) }),
+  })
+}

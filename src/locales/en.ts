@@ -181,6 +181,15 @@ export const en = {
         "Polling ingest-status every 5s — this runs a headless browser, it can take a while.",
       pollTimedOut:
         "Still hasn't reported a result after 15 minutes — it may still be running. Check back in a bit, or refresh the page.",
+      forceExtract: "Force re-extract requirements",
+      forceExtracting: "Queuing…",
+      forceExtractInfo:
+        "Runs requirement extraction against the text already stored for this source, without re-scraping or waiting for the content to change. Use this if ingestion reports success but the Requirements tab stays empty (e.g. the certification was tagged after the first scrape).",
+      forceExtractNoCertification:
+        "Tag a certification on this source below first — extraction needs to know which standard it's extracting requirements against.",
+      forceExtractQueued:
+        "Extraction queued — check the Requirements tab in a moment.",
+      forceExtractFailed: "Couldn't queue extraction: {{message}}",
       editCard: "Edit",
       versionHistoryCard: "Version history",
       noIngestedText: "No ingested text yet — run ingestion above.",

@@ -183,6 +183,15 @@ export const fr: LocaleShape<typeof en> = {
         "Vérification du statut d'extraction toutes les 5 s — ceci exécute un navigateur sans interface, cela peut prendre du temps.",
       pollTimedOut:
         "Toujours aucun résultat après 15 minutes — l'extraction est peut-être encore en cours. Revenez vérifier plus tard, ou actualisez la page.",
+      forceExtract: "Forcer la réextraction des exigences",
+      forceExtracting: "Mise en file d'attente…",
+      forceExtractInfo:
+        "Lance l'extraction des exigences à partir du texte déjà stocké pour cette source, sans réextraire la page ni attendre que le contenu change. À utiliser si l'ingestion réussit mais que l'onglet Exigences reste vide (par exemple si la certification a été ajoutée après la première extraction).",
+      forceExtractNoCertification:
+        "Ajoutez d'abord une certification à cette source ci-dessous — l'extraction a besoin de savoir contre quel standard extraire les exigences.",
+      forceExtractQueued:
+        "Extraction mise en file d'attente — vérifiez l'onglet Exigences dans un instant.",
+      forceExtractFailed: "Impossible de mettre l'extraction en file d'attente : {{message}}",
       editCard: "Modifier",
       versionHistoryCard: "Historique des versions",
       noIngestedText: "Aucun texte extrait pour le moment — lancez une extraction ci-dessus.",

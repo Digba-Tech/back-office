@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#temrorarily ignoring the workflow yaml
+.github/workflows/*
