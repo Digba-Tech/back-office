@@ -2,15 +2,9 @@ import * as React from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/ui/badge"
+import { SegmentedControl } from "@/components/segmented-control"
+import { CriticalityBadge, RequirementStatusBadge } from "@/components/status-badge"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -22,12 +16,6 @@ import {
 } from "@/components/ui/table"
 
 import { useRequirementsList } from "./queries"
-
-const STATUS_VARIANT = {
-  draft: "secondary",
-  active: "default",
-  deprecated: "outline",
-} as const
 
 export function RequirementsList() {
   const { t } = useTranslation()
@@ -41,22 +29,19 @@ export function RequirementsList() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-xl font-semibold">{t("requirements.list.title")}</h1>
+      <h1 className="font-heading text-2xl text-navy">{t("requirements.list.title")}</h1>
 
-      <div className="flex flex-wrap gap-3">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="draft">{t("requirements.list.filterDraft")}</SelectItem>
-            <SelectItem value="active">{t("requirements.list.filterActive")}</SelectItem>
-            <SelectItem value="deprecated">
-              {t("requirements.list.filterDeprecated")}
-            </SelectItem>
-            <SelectItem value="all">{t("requirements.list.filterAll")}</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-4">
+        <SegmentedControl
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: "draft", label: t("requirements.list.filterDraft") },
+            { value: "active", label: t("requirements.list.filterActive") },
+            { value: "deprecated", label: t("requirements.list.filterDeprecated") },
+            { value: "all", label: t("requirements.list.filterAll") },
+          ]}
+        />
 
         <Input
           placeholder={t("requirements.list.standardPlaceholder")}
@@ -91,30 +76,28 @@ export function RequirementsList() {
                 <TableCell>
                   <Link
                     to={`/requirements/${req.id}`}
-                    className="font-medium hover:underline"
+                    className="font-medium text-navy hover:underline"
                   >
                     {req.title}
                   </Link>
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
+                <TableCell className="font-mono text-sm text-ink-500">
                   {req.standard} · {req.native_code}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{t(`enums.criticality.${req.criticality}`)}</Badge>
+                  <CriticalityBadge criticality={req.criticality} />
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
+                <TableCell className="font-mono text-sm text-ink-500">
                   {req.due_year ?? t("requirements.list.dueImmediate")}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[req.status]}>
-                    {t(`enums.requirementStatus.${req.status}`)}
-                  </Badge>
+                  <RequirementStatusBadge status={req.status} />
                 </TableCell>
               </TableRow>
             ))}
             {requirements.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground text-center">
+                <TableCell colSpan={5} className="text-center text-ink-500">
                   {t("requirements.list.emptyFiltered")}
                 </TableCell>
               </TableRow>

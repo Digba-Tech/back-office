@@ -6,7 +6,9 @@ import { Navigate, useLocation } from "react-router-dom"
 import { z } from "zod"
 
 import { useAuth } from "@/auth/AuthProvider"
+import { DigbaLockup } from "@/components/digba-lockup"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -64,12 +66,16 @@ export function Login() {
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{t("login.title")}</CardTitle>
-          <CardDescription>{t("login.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="w-full max-w-sm">
+        <DigbaLockup />
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-heading text-2xl text-navy">
+              {t("login.title")}
+            </CardTitle>
+            <CardDescription>{t("login.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
@@ -110,9 +116,9 @@ export function Login() {
                 )}
               />
               {error && (
-                <p className="text-destructive text-sm" role="alert">
-                  {error}
-                </p>
+                <Alert variant="warning" role="alert">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting
@@ -121,8 +127,9 @@ export function Login() {
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

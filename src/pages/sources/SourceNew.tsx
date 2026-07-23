@@ -3,19 +3,13 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
 import { LabelWithInfo } from "@/components/info-tooltip"
+import { SegmentedControl } from "@/components/segmented-control"
 import { TagListInput } from "@/components/tag-list-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import type { ScrapeFrequency, SourceType } from "@/lib/types"
@@ -95,7 +89,7 @@ export function SourceNew() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-xl font-semibold">{t("sources.new.title")}</h1>
+      <h1 className="font-heading text-2xl text-navy">{t("sources.new.title")}</h1>
 
       <Card>
         <CardHeader>
@@ -132,25 +126,18 @@ export function SourceNew() {
                   <LabelWithInfo info={t("sources.fields.type.info")}>
                     {t("sources.fields.type.label")}
                   </LabelWithInfo>
-                  <Select
+                  <SegmentedControl
                     value={urlType}
-                    onValueChange={(v) => setUrlType(v as SourceType)}
-                  >
-                    <SelectTrigger className="w-56">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(
-                        vocabulary.data?.source_types.filter(
-                          (type) => type !== "pdf"
-                        ) ?? (["webpage", "rss_feed"] as SourceType[])
-                      ).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {t(`enums.sourceType.${type}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => setUrlType(v as SourceType)}
+                    options={(
+                      vocabulary.data?.source_types.filter(
+                        (type) => type !== "pdf"
+                      ) ?? (["webpage", "rss_feed"] as SourceType[])
+                    ).map((type) => ({
+                      value: type,
+                      label: t(`enums.sourceType.${type}`),
+                    }))}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="pdf" className="grid gap-4 pt-4">
@@ -170,25 +157,18 @@ export function SourceNew() {
               <LabelWithInfo info={t("sources.fields.scrapeFrequency.info")}>
                 {t("sources.fields.scrapeFrequency.label")}
               </LabelWithInfo>
-              <Select
+              <SegmentedControl
                 value={scrapeFrequency}
-                onValueChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(vocabulary.data?.scrape_frequencies ?? [
-                    "daily",
-                    "weekly",
-                    "monthly",
-                  ]).map((freq) => (
-                    <SelectItem key={freq} value={freq}>
-                      {t(`enums.scrapeFrequency.${freq}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
+                options={(vocabulary.data?.scrape_frequencies ?? [
+                  "daily",
+                  "weekly",
+                  "monthly",
+                ]).map((freq) => ({
+                  value: freq,
+                  label: t(`enums.scrapeFrequency.${freq}`),
+                }))}
+              />
             </div>
 
             <div className="flex items-center gap-2">

@@ -23,7 +23,8 @@ export const en = {
     signingIn: "Signing in…",
     emailInvalid: "Enter a valid email address",
     passwordRequired: "Password is required",
-    failedFallback: "Login failed",
+    failedFallback:
+      "Requires attention — sign-in failed. Check your email and password and try again.",
   },
   setPassword: {
     title: "Set your password",
@@ -36,7 +37,8 @@ export const en = {
     logoutInstead: "Log out instead",
     minLength: "At least 8 characters",
     mismatch: "Passwords don't match",
-    failedFallback: "Failed to set password",
+    failedFallback:
+      "Requires attention — couldn't set your password. Try again, or log out and ask ops to reset it.",
   },
   notAuthorized: {
     title: "Not authorized as admin",
@@ -51,6 +53,7 @@ export const en = {
   },
   errorBoundary: {
     title: "Something went wrong",
+    description: "Your data is safe — this screen just needs a refresh.",
     backToSources: "Back to sources",
   },
   infoTooltip: {
@@ -198,7 +201,7 @@ export const en = {
         label: "Lock scoping (stop re-ingestion from overwriting these fields)",
         info: "If you've manually corrected which sectors/countries/regions/certifications this source applies to, turn this on so the next automatic re-check doesn't overwrite your correction with its own guess.",
       },
-      saveFailed: "Failed to save",
+      saveFailed: "Requires attention — couldn't save your changes. Try again.",
     },
   },
   requirements: {
@@ -224,6 +227,8 @@ export const en = {
       reviewedByOnly: "Reviewed by {{name}}",
       rejectionReason: "Rejection reason: {{reason}}",
       notReviewable: "Not reviewable ({{status}})",
+      awaitingReviewNote:
+        "Awaiting review — check the citation on the right isn't hallucinated before approving.",
       reject: "Reject",
       rejectDialogTitle: "Reject requirement",
       rejectReasonLabel: "Reason (required, audit trail)",
@@ -236,8 +241,10 @@ export const en = {
       approving: "Approving…",
       approveInfo:
         "Makes this requirement count immediately in every customer's compliance check that it applies to. If an older version of the same requirement was already live, this replaces it. Only do this once you've checked the citation on the right isn't hallucinated.",
+      approveDialogTitle: "Approve this requirement?",
       approveConfirm:
-        "Approving supersedes the prior active version and goes live for every customer in scope immediately. Continue?",
+        "This supersedes the prior live version for every customer in scope, immediately.",
+      approveConfirmButton: "Yes, approve and go live",
       approveFailed: "Approve failed",
       rejectFailed: "Reject failed",
       extractedCard: "Extracted requirement",
@@ -249,7 +256,7 @@ export const en = {
       citationNoContent: "No content on record for this version.",
       citationNone: "No citation on record.",
       backToQueue: "← Back to review queue",
-      saveFailed: "Failed to save",
+      saveFailed: "Requires attention — couldn't save your changes. Try again.",
       fields: {
         title: { label: "Title" },
         text: { label: "Text" },

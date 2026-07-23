@@ -1,13 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource/newsreader/600.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: 'Newsreader', serif;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +45,20 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+
+    /* Digba Canon brand tokens — not part of the shadcn base palette */
+    --color-navy: var(--navy);
+    --color-green-tint: var(--green-tint);
+    --color-attention: var(--attention);
+    --color-attention-tint: var(--attention-tint);
+    --color-danger-tint: var(--danger-tint);
+    --color-ink-700: var(--ink-700);
+    --color-ink-500: var(--ink-500);
+    --color-ink-400: var(--ink-400);
+    --color-line: var(--line);
+    --color-paper: var(--paper);
+    --color-row-hover: var(--row-hover);
+
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -49,72 +69,58 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
+    /* Digba Canon tokens — see design_handoff_digba_platform/README.md */
+    --navy: #06214a;
+    --green: #52b346;
+    --green-action: #397d31;
+    --green-tint: #eaf4e7;
+    --ink-700: #25384f;
+    --ink-500: #4c5c71;
+    --ink-400: #6e7c8e;
+    --line: #e3e7ed;
+    --paper: #f5f7fa;
+    --row-hover: #f9fafb;
+    --attention: #9a6700;
+    --attention-tint: #fbf2dd;
+    --danger: #b23a2e;
+    --danger-tint: #fbeae8;
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --shadow-resting: 0 1px 2px rgba(6, 33, 74, 0.06);
+    --shadow-raised: 0 4px 12px rgba(6, 33, 74, 0.08);
+    --shadow-overlay: 0 12px 28px rgba(6, 33, 74, 0.12);
+
+    --background: var(--paper);
+    --foreground: var(--ink-700);
+    --card: #ffffff;
+    --card-foreground: var(--ink-700);
+    --popover: #ffffff;
+    --popover-foreground: var(--ink-700);
+    --primary: var(--green-action);
+    --primary-foreground: #ffffff;
+    --secondary: #edf0f3;
+    --secondary-foreground: var(--ink-700);
+    --muted: #edf0f3;
+    --muted-foreground: var(--ink-500);
+    --accent: #edf0f3;
+    --accent-foreground: var(--ink-700);
+    --destructive: var(--danger);
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--green-action);
+    --chart-1: var(--green-action);
+    --chart-2: var(--navy);
+    --chart-3: var(--attention);
+    --chart-4: var(--ink-500);
+    --chart-5: var(--ink-400);
+    --radius: 0.375rem;
+    --sidebar: var(--navy);
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: var(--green-action);
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(82, 179, 70, 0.18);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1a3357;
+    --sidebar-ring: var(--green-action);
 }
 
 @layer base {

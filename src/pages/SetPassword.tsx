@@ -5,7 +5,9 @@ import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
 import { useAuth } from "@/auth/AuthProvider"
+import { DigbaLockup } from "@/components/digba-lockup"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -64,12 +66,16 @@ export function SetPassword() {
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{t("setPassword.title")}</CardTitle>
-          <CardDescription>{t("setPassword.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="w-full max-w-sm">
+        <DigbaLockup />
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-heading text-2xl text-navy">
+              {t("setPassword.title")}
+            </CardTitle>
+            <CardDescription>{t("setPassword.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
@@ -107,9 +113,9 @@ export function SetPassword() {
                 )}
               />
               {error && (
-                <p className="text-destructive text-sm" role="alert">
-                  {error}
-                </p>
+                <Alert variant="warning" role="alert">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting
@@ -126,8 +132,9 @@ export function SetPassword() {
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

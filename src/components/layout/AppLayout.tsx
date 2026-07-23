@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthProvider"
+import digbaLogo from "@/assets/digba-logo.png"
 import { LanguageSwitcher } from "@/components/language-switcher"
-import { Button } from "@/components/ui/button"
 import { onForbidden } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { NotAuthorized } from "@/pages/NotAuthorized"
@@ -36,37 +36,42 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <nav className="flex items-center gap-4">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    "text-sm font-medium text-muted-foreground hover:text-foreground",
-                    isActive && "text-foreground"
-                  )
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
+    <div className="flex min-h-svh flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-line bg-white">
+        <div className="mx-auto flex max-w-[1120px] items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-6">
+            <img src={digbaLogo} alt="digba" className="h-8 w-auto" />
+            <nav className="flex items-center gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      "rounded-full px-3 py-1.5 text-sm font-medium text-ink-500 transition-colors hover:text-ink-700",
+                      isActive && "bg-[rgba(82,179,70,0.15)] text-navy hover:text-navy"
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
             <LanguageSwitcher />
-            <span className="text-sm text-muted-foreground">
-              {session?.user.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => void signOut()}>
+            <span className="text-[13px] text-ink-500">{session?.user.email}</span>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="text-sm text-ink-500 underline underline-offset-2 hover:text-ink-700"
+            >
               {t("nav.logout")}
-            </Button>
+            </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-[1120px] flex-1 px-4 pt-10 pb-6">
         <Outlet />
       </main>
     </div>

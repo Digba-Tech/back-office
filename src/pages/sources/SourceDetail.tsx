@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
 import { InfoTooltip, LabelWithInfo } from "@/components/info-tooltip"
+import { SegmentedControl } from "@/components/segmented-control"
+import { ActiveStatusBadge, SourceTypeBadge } from "@/components/status-badge"
 import { TagListInput } from "@/components/tag-list-input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -12,16 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 import type { ScrapeFrequency } from "@/lib/types"
 import {
@@ -138,14 +134,10 @@ export function SourceDetail() {
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">{data.name}</h1>
+          <h1 className="font-heading text-2xl text-navy">{data.name}</h1>
           <div className="mt-1 flex items-center gap-2">
-            <Badge variant="outline">{t(`enums.sourceType.${data.source_type}`)}</Badge>
-            <Badge variant={data.is_active ? "default" : "secondary"}>
-              {data.is_active
-                ? t("sources.list.statActive")
-                : t("sources.list.statInactive")}
-            </Badge>
+            <SourceTypeBadge type={data.source_type} />
+            <ActiveStatusBadge active={data.is_active} />
             {data.applies_to_locked && (
               <Badge variant="outline">{t("sources.detail.scopingLocked")}</Badge>
             )}
@@ -158,7 +150,7 @@ export function SourceDetail() {
               : t("sources.detail.activateInfo")}
           </InfoTooltip>
           <Button
-            variant="outline"
+            variant={data.is_active ? "destructive-outline" : "default"}
             disabled={setActive.isPending}
             onClick={() => setActive.mutate(!data.is_active)}
           >
@@ -174,12 +166,14 @@ export function SourceDetail() {
         </Alert>
       )}
 
-      <Card>
+      <Card className="border-navy">
         <CardHeader>
-          <CardTitle>{t("sources.detail.ingestionCard")}</CardTitle>
+          <CardTitle className="font-mono text-xs tracking-wide text-navy uppercase">
+            {t("sources.detail.ingestionCard")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-ink-500">
             {t("sources.detail.lastScrapedLabel")}{" "}
             {data.last_scraped_at
               ? formatDateTime(data.last_scraped_at, i18n.language)
@@ -206,14 +200,10 @@ export function SourceDetail() {
             <InfoTooltip>{t("sources.detail.runIngestionInfo")}</InfoTooltip>
           </div>
           {polling && (
-            <p className="text-muted-foreground text-sm">
-              {t("sources.detail.pollingNote")}
-            </p>
+            <p className="text-sm text-ink-500">{t("sources.detail.pollingNote")}</p>
           )}
           {pollTimedOut && (
-            <p className="text-muted-foreground text-sm">
-              {t("sources.detail.pollTimedOut")}
-            </p>
+            <p className="text-sm text-ink-500">{t("sources.detail.pollTimedOut")}</p>
           )}
 
           <Separator />
@@ -223,6 +213,11 @@ export function SourceDetail() {
               variant="outline"
               disabled={forceExtract.isPending || data.certifications.length === 0}
               onClick={() => forceExtract.mutate()}
+              title={
+                data.certifications.length === 0
+                  ? t("sources.detail.forceExtractNoCertification")
+                  : undefined
+              }
             >
               {forceExtract.isPending
                 ? t("sources.detail.forceExtracting")
@@ -235,9 +230,7 @@ export function SourceDetail() {
             </InfoTooltip>
           </div>
           {forceExtract.isSuccess && (
-            <p className="text-muted-foreground text-sm">
-              {t("sources.detail.forceExtractQueued")}
-            </p>
+            <p className="text-sm text-ink-500">{t("sources.detail.forceExtractQueued")}</p>
           )}
           {forceExtract.error && (
             <p className="text-destructive text-sm">
@@ -275,24 +268,30 @@ export function SourceDetail() {
             </p>
           )}
           {texts.data && texts.data.history.length === 0 && (
-            <p className="text-muted-foreground text-sm">
-              {t("sources.detail.noIngestedText")}
-            </p>
+            <p className="text-sm text-ink-500">{t("sources.detail.noIngestedText")}</p>
           )}
           {texts.data && texts.data.history.length > 0 && (
             <>
-              <div className="flex flex-wrap gap-2">
-                {texts.data.history.map((version) => (
-                  <Button
-                    key={version.id}
-                    size="sm"
-                    variant={version.id === texts.data?.text_id ? "default" : "outline"}
-                    onClick={() => setSelectedTextId(version.id)}
-                    title={version.content_hash}
-                  >
-                    {formatDateTime(version.scraped_at, i18n.language)}
-                  </Button>
-                ))}
+              <div className="flex flex-wrap gap-1.5">
+                {texts.data.history.map((version) => {
+                  const isSelected = version.id === texts.data?.text_id
+                  return (
+                    <button
+                      key={version.id}
+                      type="button"
+                      onClick={() => setSelectedTextId(version.id)}
+                      title={version.content_hash}
+                      className={cn(
+                        "h-7 rounded-full px-3 font-mono text-xs font-medium whitespace-nowrap transition-colors",
+                        isSelected
+                          ? "bg-navy text-white"
+                          : "border border-line bg-background text-ink-500 hover:border-ink-400 hover:text-ink-700"
+                      )}
+                    >
+                      {formatDateTime(version.scraped_at, i18n.language)}
+                    </button>
+                  )
+                })}
               </div>
               <Separator />
               <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
@@ -376,23 +375,15 @@ function SourceEditForm({
         <LabelWithInfo info={t("sources.fields.scrapeFrequency.info")}>
           {t("sources.fields.scrapeFrequency.label")}
         </LabelWithInfo>
-        <Select
+        <SegmentedControl
           value={scrapeFrequency}
-          onValueChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
-        >
-          <SelectTrigger className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(vocabulary?.scrape_frequencies ?? ["daily", "weekly", "monthly"]).map(
-              (freq) => (
-                <SelectItem key={freq} value={freq}>
-                  {t(`enums.scrapeFrequency.${freq}`)}
-                </SelectItem>
-              )
-            )}
-          </SelectContent>
-        </Select>
+          onChange={(v) => setScrapeFrequency(v as ScrapeFrequency)}
+          options={(vocabulary?.scrape_frequencies ?? [
+            "daily",
+            "weekly",
+            "monthly",
+          ]).map((freq) => ({ value: freq, label: t(`enums.scrapeFrequency.${freq}`) }))}
+        />
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
@@ -456,7 +447,7 @@ function SourceEditForm({
         </p>
       )}
 
-      <Button type="submit" disabled={saving} className="w-fit">
+      <Button type="submit" variant="outline-navy" disabled={saving} className="w-fit">
         {saving ? t("common.saving") : t("common.save")}
       </Button>
     </form>

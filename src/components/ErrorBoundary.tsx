@@ -1,3 +1,4 @@
+import { OctagonAlert } from "lucide-react"
 import * as React from "react"
 import { withTranslation, type WithTranslation } from "react-i18next"
 
@@ -28,13 +29,17 @@ class ErrorBoundaryInner extends React.Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="flex min-h-svh items-center justify-center p-4">
-          <div className="grid max-w-md gap-4 text-center">
-            <h1 className="text-lg font-semibold">{t("errorBoundary.title")}</h1>
-            <p className="text-muted-foreground text-sm">
-              {this.state.error.message}
-            </p>
+          <div className="grid max-w-md justify-items-center gap-4 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-danger-tint">
+              <OctagonAlert className="size-6 text-destructive" aria-hidden="true" />
+            </div>
+            <h1 className="font-heading text-2xl text-navy">
+              {t("errorBoundary.title")}
+            </h1>
+            <p className="text-sm text-ink-500">{t("errorBoundary.description")}</p>
+            <p className="font-mono text-xs text-ink-400">{this.state.error.message}</p>
             <Button
-              className="w-fit justify-self-center"
+              className="w-fit"
               onClick={() => {
                 window.location.href = "/sources"
               }}

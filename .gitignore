@@ -30,3 +30,6 @@ dist-ssr
 
 #temrorarily ignoring the workflow yaml
 .github/workflows/*
+
+# Internal design brief (not for repo history)
+DESIGN_BRIEF.md

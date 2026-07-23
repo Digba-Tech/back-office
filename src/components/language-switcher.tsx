@@ -15,25 +15,25 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="flex items-center gap-1 text-sm"
+      className="inline-flex items-center gap-0.5 rounded-full border border-line bg-[#edf0f3] p-0.5 text-sm"
       role="group"
       aria-label={t("language.label")}
     >
-      {LANGUAGES.map((lang, i) => (
-        <span key={lang.code} className="flex items-center gap-1">
-          {i > 0 && <span className="text-muted-foreground">/</span>}
-          <button
-            type="button"
-            onClick={() => void i18n.changeLanguage(lang.code)}
-            aria-pressed={current === lang.code}
-            className={cn(
-              "rounded-sm px-1 text-muted-foreground hover:text-foreground",
-              current === lang.code && "font-semibold text-foreground"
-            )}
-          >
-            {lang.label}
-          </button>
-        </span>
+      {LANGUAGES.map((lang) => (
+        <button
+          key={lang.code}
+          type="button"
+          onClick={() => void i18n.changeLanguage(lang.code)}
+          aria-pressed={current === lang.code}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+            current === lang.code
+              ? "bg-background text-navy shadow-[var(--shadow-resting)]"
+              : "text-ink-500 hover:text-ink-700"
+          )}
+        >
+          {lang.label}
+        </button>
       ))}
     </div>
   )

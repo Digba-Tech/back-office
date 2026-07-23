@@ -2,9 +2,9 @@ import * as React from "react"
 import { useTranslation } from "react-i18next"
 
 import { InfoTooltip } from "@/components/info-tooltip"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
 type TagListInputProps = {
   label: string
@@ -40,17 +40,17 @@ export function TagListInput({ label, value, onChange, options, info }: TagListI
         {info && <InfoTooltip>{info}</InfoTooltip>}
       </div>
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {value.map((tag) => (
-            <Badge
+            <button
               key={tag}
-              variant="secondary"
-              className="cursor-pointer"
+              type="button"
               onClick={() => removeTag(tag)}
               title={t("tagListInput.clickToRemove")}
+              className="inline-flex h-7 items-center rounded-full border border-primary bg-green-tint px-3 text-xs font-medium text-primary"
             >
               {tag} ×
-            </Badge>
+            </button>
           ))}
         </div>
       )}
@@ -67,17 +67,20 @@ export function TagListInput({ label, value, onChange, options, info }: TagListI
         placeholder={t("tagListInput.placeholder")}
       />
       {suggestions && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {suggestions.map((option) => (
-            <Badge
+            <button
               key={option}
-              variant="outline"
-              className="cursor-pointer"
+              type="button"
               onClick={() => addTag(option)}
               title={t("tagListInput.clickToAdd")}
+              className={cn(
+                "inline-flex h-7 items-center rounded-full border border-line bg-background px-3 text-xs font-medium text-navy",
+                "hover:border-ink-400"
+              )}
             >
               + {option}
-            </Badge>
+            </button>
           ))}
         </div>
       )}

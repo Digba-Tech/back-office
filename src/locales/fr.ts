@@ -25,7 +25,8 @@ export const fr: LocaleShape<typeof en> = {
     signingIn: "Connexion…",
     emailInvalid: "Saisissez une adresse e-mail valide",
     passwordRequired: "Le mot de passe est requis",
-    failedFallback: "Échec de la connexion",
+    failedFallback:
+      "Nécessite votre attention — échec de la connexion. Vérifiez votre e-mail et votre mot de passe, puis réessayez.",
   },
   setPassword: {
     title: "Définissez votre mot de passe",
@@ -38,7 +39,8 @@ export const fr: LocaleShape<typeof en> = {
     logoutInstead: "Se déconnecter à la place",
     minLength: "Au moins 8 caractères",
     mismatch: "Les mots de passe ne correspondent pas",
-    failedFallback: "Échec de la définition du mot de passe",
+    failedFallback:
+      "Nécessite votre attention — impossible de définir votre mot de passe. Réessayez, ou déconnectez-vous et demandez à l'équipe ops de le réinitialiser.",
   },
   notAuthorized: {
     title: "Non autorisé en tant qu'administrateur",
@@ -53,6 +55,7 @@ export const fr: LocaleShape<typeof en> = {
   },
   errorBoundary: {
     title: "Une erreur est survenue",
+    description: "Vos données sont en sécurité — cet écran a juste besoin d'être rafraîchi.",
     backToSources: "Retour aux sources",
   },
   infoTooltip: {
@@ -200,7 +203,8 @@ export const fr: LocaleShape<typeof en> = {
         label: "Verrouiller la portée (empêche la réextraction d'écraser ces champs)",
         info: "Si vous avez corrigé manuellement les secteurs/pays/régions/certifications auxquels cette source s'applique, activez ceci pour que la prochaine revérification automatique n'écrase pas votre correction avec sa propre estimation.",
       },
-      saveFailed: "Échec de l'enregistrement",
+      saveFailed:
+        "Nécessite votre attention — impossible d'enregistrer vos modifications. Réessayez.",
     },
   },
   requirements: {
@@ -226,6 +230,8 @@ export const fr: LocaleShape<typeof en> = {
       reviewedByOnly: "Révisé par {{name}}",
       rejectionReason: "Motif du rejet : {{reason}}",
       notReviewable: "Non révisable ({{status}})",
+      awaitingReviewNote:
+        "En attente de révision — vérifiez que la citation à droite n'est pas fabriquée par l'IA avant d'approuver.",
       reject: "Rejeter",
       rejectDialogTitle: "Rejeter l'exigence",
       rejectReasonLabel: "Motif (obligatoire, journal d'audit)",
@@ -238,8 +244,10 @@ export const fr: LocaleShape<typeof en> = {
       approving: "Approbation en cours…",
       approveInfo:
         "Fait immédiatement compter cette exigence dans la vérification de conformité de chaque client concerné. Si une ancienne version de la même exigence était déjà en ligne, celle-ci la remplace. À faire uniquement après avoir vérifié que la citation à droite n'est pas fabriquée par l'IA.",
+      approveDialogTitle: "Approuver cette exigence ?",
       approveConfirm:
-        "L'approbation remplace la version active précédente et sera immédiatement en ligne pour tous les clients concernés. Continuer ?",
+        "Ceci remplace la version précédemment en ligne pour tous les clients concernés, immédiatement.",
+      approveConfirmButton: "Oui, approuver et mettre en ligne",
       approveFailed: "Échec de l'approbation",
       rejectFailed: "Échec du rejet",
       extractedCard: "Exigence extraite",
@@ -251,7 +259,8 @@ export const fr: LocaleShape<typeof en> = {
       citationNoContent: "Aucun contenu enregistré pour cette version.",
       citationNone: "Aucune citation enregistrée.",
       backToQueue: "← Retour à la file de révision",
-      saveFailed: "Échec de l'enregistrement",
+      saveFailed:
+        "Nécessite votre attention — impossible d'enregistrer vos modifications. Réessayez.",
       fields: {
         title: { label: "Titre" },
         text: { label: "Texte" },

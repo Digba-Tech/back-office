@@ -2,16 +2,11 @@ import * as React from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
-import { Badge } from "@/components/ui/badge"
+import { SegmentedControl } from "@/components/segmented-control"
+import { ActiveStatusBadge, SourceTypeBadge } from "@/components/status-badge"
+import { StatTile } from "@/components/stat-tile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -21,7 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { formatDateTime } from "@/lib/format"
+import type { SourceType } from "@/lib/types"
 
 import { useSourcesList, useSourcesMonitoring, useSourcesVocabulary } from "./queries"
 
@@ -42,7 +43,7 @@ export function SourcesList() {
   return (
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{t("sources.list.title")}</h1>
+        <h1 className="font-heading text-2xl text-navy">{t("sources.list.title")}</h1>
         <Button asChild>
           <Link to="/sources/new">{t("sources.list.newSource")}</Link>
         </Button>
@@ -50,40 +51,41 @@ export function SourcesList() {
 
       {monitoring.data && (
         <div className="grid grid-cols-3 gap-4">
-          <MonitoringStat label={t("sources.list.statTotal")} value={monitoring.data.total} />
-          <MonitoringStat label={t("sources.list.statActive")} value={monitoring.data.active} />
-          <MonitoringStat
+          <StatTile label={t("sources.list.statTotal")} value={monitoring.data.total} />
+          <StatTile
+            label={t("sources.list.statActive")}
+            value={monitoring.data.active}
+            tone="positive"
+          />
+          <StatTile
             label={t("sources.list.statInactive")}
             value={monitoring.data.inactive}
           />
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <Select value={active} onValueChange={setActive}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("sources.list.filterAllStatuses")}</SelectItem>
-            <SelectItem value="true">{t("sources.list.filterActiveOnly")}</SelectItem>
-            <SelectItem value="false">{t("sources.list.filterInactiveOnly")}</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-4">
+        <SegmentedControl
+          value={active}
+          onChange={setActive}
+          options={[
+            { value: "all", label: t("sources.list.filterAllStatuses") },
+            { value: "true", label: t("sources.list.filterActiveOnly") },
+            { value: "false", label: t("sources.list.filterInactiveOnly") },
+          ]}
+        />
 
-        <Select value={sourceType} onValueChange={setSourceType}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("sources.list.filterAllTypes")}</SelectItem>
-            {vocabulary.data?.source_types.map((type) => (
-              <SelectItem key={type} value={type}>
-                {t(`enums.sourceType.${type}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SegmentedControl
+          value={sourceType}
+          onChange={setSourceType}
+          options={[
+            { value: "all", label: t("sources.list.filterAllTypes") },
+            ...(vocabulary.data?.source_types.map((type) => ({
+              value: type as string,
+              label: t(`enums.sourceType.${type}`),
+            })) ?? []),
+          ]}
+        />
 
         <Input
           placeholder={t("sources.list.filterStandardPlaceholder")}
@@ -118,38 +120,39 @@ export function SourcesList() {
                 <TableCell>
                   <Link
                     to={`/sources/${source.id}`}
-                    className="font-medium hover:underline"
+                    className="font-medium text-navy hover:underline"
                   >
                     {source.name}
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{t(`enums.sourceType.${source.source_type}`)}</Badge>
+                  <SourceTypeBadge type={source.source_type as SourceType} />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={source.is_active ? "default" : "secondary"}>
-                    {source.is_active
-                      ? t("sources.list.statActive")
-                      : t("sources.list.statInactive")}
-                  </Badge>
+                  <ActiveStatusBadge active={source.is_active} />
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
+                <TableCell className="font-mono text-sm text-ink-500">
                   {source.last_scraped_at
                     ? formatDateTime(source.last_scraped_at, i18n.language)
                     : t("sources.list.never")}
                 </TableCell>
                 <TableCell>
                   {source.last_scrape_error && (
-                    <Badge variant="destructive" title={source.last_scrape_error}>
-                      {t("sources.list.errorBadge")}
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex h-5 w-fit cursor-default items-center rounded-full bg-danger-tint px-2 text-[11px] font-semibold whitespace-nowrap text-destructive uppercase">
+                          {t("sources.list.errorBadge")}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{source.last_scrape_error}</TooltipContent>
+                    </Tooltip>
                   )}
                 </TableCell>
               </TableRow>
             ))}
             {sources.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground text-center">
+                <TableCell colSpan={5} className="text-center text-ink-500">
                   {t("sources.list.emptyFiltered")}
                 </TableCell>
               </TableRow>
@@ -157,15 +160,6 @@ export function SourcesList() {
           </TableBody>
         </Table>
       )}
-    </div>
-  )
-}
-
-function MonitoringStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-muted-foreground text-sm">{label}</p>
-      <p className="text-2xl font-semibold">{value}</p>
     </div>
   )
 }
