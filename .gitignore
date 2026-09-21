@@ -33,3 +33,6 @@ dist-ssr
 
 # Internal design brief (not for repo history)
 DESIGN_BRIEF.md
+
+# Internal V2 migration planning doc (not for repo history)
+V2_IMPLEMENTATION_PLAN.md

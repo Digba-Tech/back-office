@@ -14,6 +14,7 @@ import { RequirementsList } from "@/pages/requirements/RequirementsList"
 import { SourceDetail } from "@/pages/sources/SourceDetail"
 import { SourceNew } from "@/pages/sources/SourceNew"
 import { SourcesList } from "@/pages/sources/SourcesList"
+import { VerifyEmail } from "@/pages/VerifyEmail"
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
             <ErrorBoundary>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route element={<RequireSession />}>
                   <Route element={<AppLayout />}>
                     <Route index element={<Navigate to="/sources" replace />} />

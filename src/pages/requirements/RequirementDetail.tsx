@@ -1,7 +1,9 @@
 import * as React from "react"
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router-dom"
 
+import { BilingualInput } from "@/components/bilingual-input"
 import { InfoTooltip, LabelWithInfo } from "@/components/info-tooltip"
 import { SegmentedControl } from "@/components/segmented-control"
 import { CriticalityBadge, RequirementStatusBadge } from "@/components/status-badge"
@@ -10,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -21,12 +24,21 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { formatDateTime } from "@/lib/format"
 
 import { useSourcesVocabulary } from "@/pages/sources/queries"
-import type { CheckKind, Criticality, Requirement } from "@/lib/types"
+import type {
+  CheckKind,
+  Criticality,
+  EvidenceItem,
+  EvidenceWeight,
+  Locale2,
+  Requirement,
+  RequirementAction,
+} from "@/lib/types"
 import {
   useApproveRequirement,
   useRejectRequirement,
@@ -36,6 +48,25 @@ import {
 
 const CHECK_KINDS: CheckKind[] = ["document_presence", "deterministic", "llm"]
 const CRITICALITIES: Criticality[] = ["core", "mandatory", "improvement"]
+const EVIDENCE_WEIGHTS: EvidenceWeight[] = ["formal", "lightweight"]
+
+const EMPTY_LOCALE2: Locale2 = { fr: "", en: "" }
+
+function isEmptyLocale2(value: Locale2 | null | undefined): boolean {
+  return !value || (!value.fr.trim() && !value.en.trim())
+}
+
+function newActionId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `action-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function newEvidenceId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `evidence-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
 
 export function RequirementDetail() {
   const { t, i18n } = useTranslation()
@@ -223,6 +254,7 @@ export function RequirementDetail() {
               key={requirement.id}
               requirement={requirement}
               vocabulary={vocabulary.data}
+              reviewable={reviewable}
               onSave={(body) => updateRequirement.mutateAsync(body)}
             />
           </CardContent>
@@ -287,10 +319,12 @@ export function RequirementDetail() {
 function RequirementEditForm({
   requirement,
   vocabulary,
+  reviewable,
   onSave,
 }: {
   requirement: Requirement
   vocabulary: ReturnType<typeof useSourcesVocabulary>["data"]
+  reviewable: boolean
   onSave: (
     body: Parameters<ReturnType<typeof useUpdateRequirement>["mutateAsync"]>[0]
   ) => Promise<unknown>
@@ -324,6 +358,10 @@ function RequirementEditForm({
     requirement.expected_evidence.document_types
   )
   const [hint, setHint] = React.useState(requirement.expected_evidence.hint ?? "")
+  const [actions, setActions] = React.useState<RequirementAction[]>(requirement.actions)
+  const [evidenceChecklist, setEvidenceChecklist] = React.useState<EvidenceItem[]>(
+    requirement.evidence_checklist
+  )
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -347,6 +385,15 @@ function RequirementEditForm({
           certifications,
         },
         expected_evidence: { document_types: documentTypes, hint: hint || null },
+        actions: actions.map((action) => ({
+          ...action,
+          description: isEmptyLocale2(action.description) ? null : action.description,
+        })),
+        evidence_checklist: evidenceChecklist.map((item) => ({
+          ...item,
+          guidance: isEmptyLocale2(item.guidance) ? null : item.guidance,
+          hint: item.hint?.trim() ? item.hint : null,
+        })),
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : t("requirements.detail.saveFailed"))
@@ -357,6 +404,14 @@ function RequirementEditForm({
 
   return (
     <form onSubmit={onSubmit} className="grid gap-4">
+      {!reviewable && (
+        <p className="text-sm text-ink-500">
+          {t("requirements.detail.editLocked", {
+            status: t(`enums.requirementStatus.${requirement.status}`),
+          })}
+        </p>
+      )}
+      <fieldset disabled={!reviewable} className="grid gap-4 border-0 p-0 m-0">
       <div className="grid gap-2">
         <Label htmlFor="req-title">{t("requirements.detail.fields.title.label")}</Label>
         <Input id="req-title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -494,6 +549,24 @@ function RequirementEditForm({
         <Textarea id="req-hint" value={hint} onChange={(e) => setHint(e.target.value)} />
       </div>
 
+      <Separator />
+
+      <div className="grid gap-2">
+        <LabelWithInfo info={t("requirements.detail.actions.info")}>
+          {t("requirements.detail.actions.title")}
+        </LabelWithInfo>
+        <ActionsEditor value={actions} onChange={setActions} />
+      </div>
+
+      <Separator />
+
+      <div className="grid gap-2">
+        <LabelWithInfo info={t("requirements.detail.evidenceChecklist.info")}>
+          {t("requirements.detail.evidenceChecklist.title")}
+        </LabelWithInfo>
+        <EvidenceChecklistEditor value={evidenceChecklist} onChange={setEvidenceChecklist} />
+      </div>
+
       {error && (
         <p className="text-destructive text-sm" role="alert">
           {error}
@@ -503,6 +576,228 @@ function RequirementEditForm({
       <Button type="submit" variant="outline-navy" disabled={saving} className="w-fit">
         {saving ? t("common.saving") : t("common.save")}
       </Button>
+      </fieldset>
     </form>
+  )
+}
+
+function ActionsEditor({
+  value,
+  onChange,
+}: {
+  value: RequirementAction[]
+  onChange: (next: RequirementAction[]) => void
+}) {
+  const { t } = useTranslation()
+
+  function update(index: number, patch: Partial<RequirementAction>) {
+    onChange(value.map((action, i) => (i === index ? { ...action, ...patch } : action)))
+  }
+
+  function remove(index: number) {
+    onChange(
+      value
+        .filter((_, i) => i !== index)
+        .map((action, i) => ({ ...action, order: i }))
+    )
+  }
+
+  function add() {
+    onChange([
+      ...value,
+      {
+        action_id: newActionId(),
+        title: { ...EMPTY_LOCALE2 },
+        description: { ...EMPTY_LOCALE2 },
+        mandatory: true,
+        order: value.length,
+      },
+    ])
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction
+    if (target < 0 || target >= value.length) return
+    const next = [...value]
+    const [moved] = next.splice(index, 1)
+    next.splice(target, 0, moved)
+    onChange(next.map((action, i) => ({ ...action, order: i })))
+  }
+
+  return (
+    <div className="grid gap-3">
+      {value.length === 0 && (
+        <p className="text-sm text-ink-500">{t("requirements.detail.actions.empty")}</p>
+      )}
+      {value.map((action, index) => (
+        <div key={action.action_id} className="grid gap-2 rounded-md border border-line p-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs text-ink-500">#{index + 1}</span>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                disabled={index === 0}
+                onClick={() => move(index, -1)}
+                aria-label={t("requirements.detail.actions.moveUp")}
+              >
+                <ArrowUp />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                disabled={index === value.length - 1}
+                onClick={() => move(index, 1)}
+                aria-label={t("requirements.detail.actions.moveDown")}
+              >
+                <ArrowDown />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => remove(index)}
+                aria-label={t("requirements.detail.actions.remove")}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          </div>
+          <BilingualInput
+            idPrefix={`action-${action.action_id}-title`}
+            label={t("requirements.detail.actions.titleLabel")}
+            value={action.title}
+            onChange={(title) => update(index, { title })}
+          />
+          <BilingualInput
+            idPrefix={`action-${action.action_id}-desc`}
+            label={t("requirements.detail.actions.descriptionLabel")}
+            value={action.description ?? EMPTY_LOCALE2}
+            onChange={(description) => update(index, { description })}
+            multiline
+          />
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={`action-${action.action_id}-mandatory`}
+              checked={action.mandatory}
+              onCheckedChange={(checked) => update(index, { mandatory: checked === true })}
+            />
+            <Label htmlFor={`action-${action.action_id}-mandatory`}>
+              {t("requirements.detail.actions.mandatoryLabel")}
+            </Label>
+          </div>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={add}>
+        {t("requirements.detail.actions.add")}
+      </Button>
+    </div>
+  )
+}
+
+function EvidenceChecklistEditor({
+  value,
+  onChange,
+}: {
+  value: EvidenceItem[]
+  onChange: (next: EvidenceItem[]) => void
+}) {
+  const { t } = useTranslation()
+
+  function update(index: number, patch: Partial<EvidenceItem>) {
+    onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  function remove(index: number) {
+    onChange(value.filter((_, i) => i !== index))
+  }
+
+  function add() {
+    onChange([
+      ...value,
+      {
+        evidence_id: newEvidenceId(),
+        name: { ...EMPTY_LOCALE2 },
+        document_types: [],
+        weight: "formal",
+        guidance: { ...EMPTY_LOCALE2 },
+        hint: "",
+      },
+    ])
+  }
+
+  return (
+    <div className="grid gap-3">
+      {value.length === 0 && (
+        <p className="text-sm text-ink-500">
+          {t("requirements.detail.evidenceChecklist.empty")}
+        </p>
+      )}
+      {value.map((item, index) => (
+        <div key={item.evidence_id} className="grid gap-2 rounded-md border border-line p-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs text-ink-500">#{index + 1}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => remove(index)}
+              aria-label={t("requirements.detail.evidenceChecklist.remove")}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+          <BilingualInput
+            idPrefix={`evidence-${item.evidence_id}-name`}
+            label={t("requirements.detail.evidenceChecklist.nameLabel")}
+            value={item.name}
+            onChange={(name) => update(index, { name })}
+          />
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-ink-500">
+              {t("requirements.detail.evidenceChecklist.weightLabel")}
+            </Label>
+            <SegmentedControl
+              value={item.weight}
+              onChange={(weight) => update(index, { weight })}
+              options={EVIDENCE_WEIGHTS.map((weight) => ({
+                value: weight,
+                label: t(`enums.evidenceWeight.${weight}`),
+              }))}
+            />
+          </div>
+          <TagListInput
+            label={t("requirements.detail.evidenceChecklist.documentTypesLabel")}
+            value={item.document_types}
+            onChange={(document_types) => update(index, { document_types })}
+          />
+          <BilingualInput
+            idPrefix={`evidence-${item.evidence_id}-guidance`}
+            label={t("requirements.detail.evidenceChecklist.guidanceLabel")}
+            value={item.guidance ?? EMPTY_LOCALE2}
+            onChange={(guidance) => update(index, { guidance })}
+            multiline
+          />
+          <div className="grid gap-1">
+            <Label
+              htmlFor={`evidence-${item.evidence_id}-hint`}
+              className="text-xs text-ink-500"
+            >
+              {t("requirements.detail.evidenceChecklist.hintLabel")}
+            </Label>
+            <Input
+              id={`evidence-${item.evidence_id}-hint`}
+              value={item.hint ?? ""}
+              onChange={(e) => update(index, { hint: e.target.value })}
+            />
+          </div>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={add}>
+        {t("requirements.detail.evidenceChecklist.add")}
+      </Button>
+    </div>
   )
 }

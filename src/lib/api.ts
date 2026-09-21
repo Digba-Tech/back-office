@@ -1,5 +1,7 @@
+import { EmailVerificationClaim } from "supertokens-web-js/recipe/emailverification"
+import { getInvalidClaimsFromResponse } from "supertokens-web-js/recipe/session"
+
 import i18n from "@/lib/i18n"
-import { supabase } from "@/lib/supabase"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -15,8 +17,9 @@ export class ApiError extends Error {
   }
 }
 
-// Token is valid but the account isn't flagged admin (guide §2: this is a
-// backend/ops fix, never something to retry client-side).
+// A valid, verified session hit an admin-only route without the admin role
+// (guide §3.3: a real authorization failure, not a claim issue — never
+// retried automatically).
 export class ForbiddenError extends ApiError {
   constructor(body?: unknown) {
     super(403, i18n.t("api.notAuthorized"), body)
@@ -24,54 +27,74 @@ export class ForbiddenError extends ApiError {
   }
 }
 
-type ForbiddenListener = () => void
-const forbiddenListeners = new Set<ForbiddenListener>()
+// A valid session whose email isn't verified yet hit a session-guarded
+// route (guide §3.3, the `st-ev` claim). Distinct from ForbiddenError so
+// callers route to the verify-email screen instead of a dead-end.
+export class EmailVerificationRequiredError extends ApiError {
+  constructor(body?: unknown) {
+    super(403, i18n.t("api.verificationRequired"), body)
+    this.name = "EmailVerificationRequiredError"
+  }
+}
 
-export function onForbidden(listener: ForbiddenListener): () => void {
+type Listener = () => void
+
+const forbiddenListeners = new Set<Listener>()
+const verificationRequiredListeners = new Set<Listener>()
+
+export function onForbidden(listener: Listener): () => void {
   forbiddenListeners.add(listener)
   return () => forbiddenListeners.delete(listener)
 }
 
+export function onVerificationRequired(listener: Listener): () => void {
+  verificationRequiredListeners.add(listener)
+  return () => verificationRequiredListeners.delete(listener)
+}
+
 function extractMessage(body: unknown, fallback: string): string {
-  if (body && typeof body === "object" && "detail" in body) {
-    const detail = (body as { detail: unknown }).detail
-    if (typeof detail === "string") return detail
+  if (body && typeof body === "object") {
+    const record = body as Record<string, unknown>
+    if (typeof record.message === "string") return record.message
+    if (typeof record.detail === "string") return record.detail
   }
   return fallback
 }
 
-async function getAccessToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
-async function request<T>(
-  path: string,
-  options: RequestInit = {},
-  { retryOn401 = true }: { retryOn401?: boolean } = {}
-): Promise<T> {
-  const token = await getAccessToken()
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers)
-  if (token) headers.set("Authorization", `Bearer ${token}`)
-
   const isFormData = options.body instanceof FormData
   if (!isFormData && options.body !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json")
   }
 
+  // Deliberately a plain fetch — src/lib/supertokens.ts's SuperTokens.init()
+  // patches window.fetch globally to attach the session cookie, anti-CSRF
+  // header, and silently refresh-and-retry once on a refreshable 401. A
+  // manual Authorization header or a hand-rolled retry loop here would
+  // fight that (guide §3.2) since apiDomain/websiteDomain are cross-origin.
   const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
 
-  if (res.status === 401 && retryOn401) {
-    const { data, error } = await supabase.auth.refreshSession()
-    if (!error && data.session) {
-      return request<T>(path, options, { retryOn401: false })
-    }
-    await supabase.auth.signOut()
+  if (res.status === 401) {
+    // The interceptor already tried a silent refresh-and-retry before this
+    // response reached us — surviving 401 means the session is genuinely
+    // gone (guide §3.3). AuthProvider reacts to this on its own via the
+    // SDK's UNAUTHORISED event (src/lib/supertokens.ts's onSessionEnded);
+    // this just surfaces a translated error to the caller.
     throw new ApiError(401, i18n.t("api.sessionExpired"))
   }
 
   if (res.status === 403) {
     const body = await res.json().catch(() => undefined)
+    const claimErrors = await getInvalidClaimsFromResponse({
+      response: { data: body },
+    }).catch(() => [])
+
+    if (claimErrors.some((err) => err.id === EmailVerificationClaim.id)) {
+      verificationRequiredListeners.forEach((listen) => listen())
+      throw new EmailVerificationRequiredError(body)
+    }
+
     forbiddenListeners.forEach((listen) => listen())
     throw new ForbiddenError(body)
   }

@@ -1,4 +1,4 @@
-// Mirrors BACKOFFICE_ADMIN_GUIDE.md §3 — the admin API contract.
+// Mirrors BACKOFFICE_ADMIN_GUIDE_V2.md §4 — the admin API contract.
 
 export type AppliesTo = {
   sectors: string[]
@@ -18,6 +18,33 @@ export type ExpectedEvidence = {
   hint: string | null
 }
 
+// Bilingual text pair — French is the primary reference language for
+// display to cooperatives, English is kept alongside it.
+export type Locale2 = { fr: string; en: string }
+
+// V2 Level 2: an actionable to-do a cooperative must complete for this
+// requirement.
+export type RequirementAction = {
+  action_id: string
+  title: Locale2
+  description?: Locale2 | null
+  mandatory: boolean
+  order: number
+}
+
+export type EvidenceWeight = "formal" | "lightweight"
+
+// V2 Level 3: one item of the evidence checklist proving a requirement's
+// actions were actually carried out.
+export type EvidenceItem = {
+  evidence_id: string
+  name: Locale2
+  document_types: string[]
+  weight: EvidenceWeight
+  guidance?: Locale2 | null
+  hint?: string | null
+}
+
 export type Requirement = {
   id: string
   requirement_key: string // "{standard}:{native_code}"
@@ -31,6 +58,8 @@ export type Requirement = {
   check_kind: CheckKind
   check_code: string | null // required if check_kind === "deterministic"
   expected_evidence: ExpectedEvidence
+  actions: RequirementAction[]
+  evidence_checklist: EvidenceItem[]
   criticality: Criticality
   due_year: number | null // null = due immediately
   status: RequirementStatus
@@ -45,7 +74,8 @@ export type Requirement = {
 
 // PATCH /admin/requirements/{id} — identity fields (standard, native_code,
 // requirement_key) are deliberately not editable here; a renumbering is a
-// separate remap, never a silent edit.
+// separate remap, never a silent edit. Only accepted while status="draft".
+// actions/evidence_checklist are replaced wholesale, not merged per-row.
 export type RequirementEdit = Partial<{
   title: string
   text: string
@@ -54,6 +84,8 @@ export type RequirementEdit = Partial<{
   check_kind: CheckKind
   check_code: string | null
   expected_evidence: ExpectedEvidence
+  actions: RequirementAction[]
+  evidence_checklist: EvidenceItem[]
   criticality: Criticality
   due_year: number | null
 }>

@@ -1,24 +1,24 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthProvider"
-import { SetPassword } from "@/pages/SetPassword"
 
-// Guards a route on "is anyone logged in". Whether that person is an admin
-// is decided server-side per request (guide §2) — this never tries to
-// duplicate that check client-side. It does block on the client-only
-// must_change_password flag (guide §2), which the backend never checks.
+// Guards a route on "is anyone logged in" and "is their email verified"
+// (guide §2.4: email verification is required before ANY session-guarded
+// route works, admin ones included). Whether that person is an admin is
+// decided server-side per request — this never tries to duplicate that
+// check client-side; see AppLayout's onForbidden handling for that path.
 export function RequireSession() {
-  const { session, loading, mustChangePassword } = useAuth()
+  const { sessionExists, loading, emailVerified } = useAuth()
   const location = useLocation()
 
   if (loading) return null
 
-  if (!session) {
+  if (!sessionExists) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (mustChangePassword) {
-    return <SetPassword />
+  if (emailVerified === false) {
+    return <Navigate to="/verify-email" state={{ from: location }} replace />
   }
 
   return <Outlet />

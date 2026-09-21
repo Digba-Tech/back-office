@@ -1,80 +1,93 @@
 import * as React from "react"
-import type { Session } from "@supabase/supabase-js"
+import { isEmailVerified } from "supertokens-web-js/recipe/emailverification"
+import Session, { getAccessTokenPayloadSecurely } from "supertokens-web-js/recipe/session"
 
-import { supabase } from "@/lib/supabase"
+import { onVerificationRequired } from "@/lib/api"
+import { onSessionEnded } from "@/lib/supertokens"
 
-type AuthContextValue = {
-  session: Session | null
+type Identity = {
+  email: string | null
+  name: string | null
+  picture: string | null
+  role: string | null
+}
+
+const EMPTY_IDENTITY: Identity = { email: null, name: null, picture: null, role: null }
+
+type AuthContextValue = Identity & {
+  sessionExists: boolean
   loading: boolean
-  // Ops sets a temp password on account creation (guide §1); this gates the
-  // client's own UI until the founder replaces it. Unrelated to the
-  // app_metadata.role admin check and never checked by the backend.
-  mustChangePassword: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  // From EmailVerification.isEmailVerified() — null while unknown/loading,
+  // distinct from false so RequireSession doesn't flash the verify-email
+  // screen before the first check resolves.
+  emailVerified: boolean | null
   signOut: () => Promise<void>
-  completePasswordChange: (newPassword: string) => Promise<void>
+  // Re-reads session + identity + verification status from SuperTokens.
+  // Call after sign-in/sign-up, after verifying an email, or in response to
+  // onSessionEnded/a 403 claim-validation error from the API layer.
+  refresh: () => Promise<void>
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = React.useState<Session | null>(null)
+  const [sessionExists, setSessionExists] = React.useState(false)
   const [loading, setLoading] = React.useState(true)
+  const [emailVerified, setEmailVerified] = React.useState<boolean | null>(null)
+  const [identity, setIdentity] = React.useState<Identity>(EMPTY_IDENTITY)
+
+  const refresh = React.useCallback(async () => {
+    const exists = await Session.doesSessionExist()
+    setSessionExists(exists)
+
+    if (!exists) {
+      setIdentity(EMPTY_IDENTITY)
+      setEmailVerified(null)
+      return
+    }
+
+    const [payload, verification] = await Promise.all([
+      getAccessTokenPayloadSecurely(),
+      isEmailVerified(),
+    ])
+
+    setIdentity({
+      email: payload?.email ?? null,
+      name: payload?.name ?? null,
+      picture: payload?.picture ?? null,
+      role: payload?.role ?? null,
+    })
+    setEmailVerified(verification.isVerified)
+  }, [])
 
   React.useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setLoading(false)
-    })
-
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        setSession(nextSession)
-      }
-    )
-
-    return () => subscription.subscription.unsubscribe()
-  }, [])
-
-  const signIn = React.useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
-  }, [])
+    void refresh().finally(() => setLoading(false))
+    const stopSessionEnded = onSessionEnded(() => void refresh())
+    // A 403 with the email-verification claim (src/lib/api.ts) means the
+    // access-token payload's stale — re-check so RequireSession picks up
+    // emailVerified: false and routes to /verify-email.
+    const stopVerificationRequired = onVerificationRequired(() => void refresh())
+    return () => {
+      stopSessionEnded()
+      stopVerificationRequired()
+    }
+  }, [refresh])
 
   const signOut = React.useCallback(async () => {
-    await supabase.auth.signOut()
-  }, [])
-
-  const completePasswordChange = React.useCallback(async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-      data: { must_change_password: false },
-    })
-    if (error) throw error
-
-    // updateUser's own auth-state event usually carries the refreshed user,
-    // but the guide is explicit: re-fetch so the cleared flag takes effect
-    // immediately rather than relying on that timing.
-    const { data, error: refreshError } = await supabase.auth.refreshSession()
-    if (!refreshError) setSession(data.session)
-  }, [])
-
-  const mustChangePassword =
-    session?.user.user_metadata?.must_change_password === true
+    await Session.signOut()
+    await refresh()
+  }, [refresh])
 
   const value = React.useMemo(
     () => ({
-      session,
+      sessionExists,
       loading,
-      mustChangePassword,
-      signIn,
+      emailVerified,
+      ...identity,
       signOut,
-      completePasswordChange,
+      refresh,
     }),
-    [session, loading, mustChangePassword, signIn, signOut, completePasswordChange]
+    [sessionExists, loading, emailVerified, identity, signOut, refresh]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

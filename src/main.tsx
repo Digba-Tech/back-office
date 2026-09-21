@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 
 import { App } from "@/App"
 import "@/lib/i18n"
+import "@/lib/supertokens"
 
 import "./index.css"
 

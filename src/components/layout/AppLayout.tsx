@@ -11,7 +11,7 @@ import { NotAuthorized } from "@/pages/NotAuthorized"
 
 export function AppLayout() {
   const { t } = useTranslation()
-  const { session, signOut } = useAuth()
+  const { email, signOut } = useAuth()
   const location = useLocation()
   const [forbidden, setForbidden] = React.useState(false)
 
@@ -30,9 +30,7 @@ export function AppLayout() {
   }, [location.pathname])
 
   if (forbidden) {
-    return (
-      <NotAuthorized email={session?.user.email} onSignOut={() => void signOut()} />
-    )
+    return <NotAuthorized email={email} onSignOut={() => void signOut()} />
   }
 
   return (
@@ -60,7 +58,7 @@ export function AppLayout() {
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
-            <span className="text-[13px] text-ink-500">{session?.user.email}</span>
+            <span className="text-[13px] text-ink-500">{email}</span>
             <button
               type="button"
               onClick={() => void signOut()}
