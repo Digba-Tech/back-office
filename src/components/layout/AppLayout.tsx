@@ -1,10 +1,12 @@
 import * as React from "react"
+import { LogOut } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { useAuth } from "@/auth/AuthProvider"
 import digbaLogo from "@/assets/digba-logo.png"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { Button } from "@/components/ui/button"
 import { onForbidden } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { NotAuthorized } from "@/pages/NotAuthorized"
@@ -59,13 +61,17 @@ export function AppLayout() {
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <span className="text-[13px] text-ink-500">{email}</span>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => void signOut()}
-              className="text-sm text-ink-500 underline underline-offset-2 hover:text-ink-700"
+              aria-label={t("nav.logout")}
+              title={t("nav.logout")}
+              className="cursor-pointer text-ink-500 hover:text-ink-700"
             >
-              {t("nav.logout")}
-            </button>
+              <LogOut aria-hidden="true" />
+            </Button>
           </div>
         </div>
       </header>

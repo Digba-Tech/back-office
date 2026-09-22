@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
           onClick={() => void i18n.changeLanguage(lang.code)}
           aria-pressed={current === lang.code}
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+            "cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
             current === lang.code
               ? "bg-background text-navy shadow-[var(--shadow-resting)]"
               : "text-ink-500 hover:text-ink-700"
