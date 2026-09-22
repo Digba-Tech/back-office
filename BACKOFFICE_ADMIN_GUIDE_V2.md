@@ -94,7 +94,28 @@ screens against `supertokens-web-js`/the raw SDK calls (`signInPOST`, etc.)
 to keep the existing branded login screen, rather than mounting the
 prebuilt UI.
 
-### 3.5 Handling Session/Claim Errors
+### 3.5 Gating the App Shell Itself (not just individual calls)
+
+A valid session is NOT the same as an admin session — SuperTokens' sign-up/
+sign-in has no concept of "this account may use the back-office app"; ANY
+email can authenticate against it (becoming an admin is the separate,
+manual `provision_admin_supertokens.py` step in §2). This is by design and
+will not change backend-side, so the back-office app itself is the only
+place a non-admin can be turned away before reaching the dashboard.
+
+Check the session's `role` claim (§3.3's `getAccessTokenPayloadSecurely()`,
+no round trip needed) immediately after a session is established — on
+every app-shell/route load, not just at sign-in — and redirect anything
+other than `role === "admin"` straight to an access-denied screen (or back
+to sign-in) BEFORE rendering the dashboard shell or firing any `/api/v2/
+admin/*` calls. Relying on those calls' `403`s (§3.6 below) alone means a
+non-admin customer account can browse the dashboard shell and navigate
+between empty-looking screens — every actual admin action still correctly
+403s server-side (`require_admin` on every route, no exceptions), so no
+data is ever exposed, but it's a confusing dead-end experience that reads
+as "I got into the admin portal" and shouldn't be reachable at all.
+
+### 3.6 Handling Session/Claim Errors
 - **401** (`try_refresh_token` / `unauthorised`, SuperTokens' own session-expired
   shape): the SDK's interceptor refreshes the session transparently in most
   cases; a genuine 401 after that means the user needs to sign in again.
@@ -112,7 +133,8 @@ prebuilt UI.
 All routes require a valid SuperTokens session (attached automatically per
 §3.2) whose access-token payload's `role` claim is `"admin"` (stamped via
 `usermetadata`, see §2). No session/an expired session → `401`; a valid
-non-admin session → `403` (see §3.5 for telling the two apart).
+non-admin session → `403` (see §3.6 for telling the two apart, and §3.5 for
+why the app shell shouldn't wait until this point to turn a non-admin away).
 
 ### 4.1 Requirements Review (`/api/v2/admin/requirements`)
 
