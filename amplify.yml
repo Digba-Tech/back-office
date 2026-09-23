@@ -1,0 +1,25 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # npm ci only installs the platform-specific optional native binding
+        # recorded in package-lock.json for whatever machine last regenerated
+        # it (see https://github.com/npm/cli/issues/4828) — rolldown (Vite's
+        # bundler) ships a native binding per OS/arch, so a lockfile
+        # regenerated on a dev machine other than Amplify's linux-x64 build
+        # image leaves that binding out, and vite build then crashes with
+        # "Cannot find native binding". npm install re-resolves optional
+        # deps for the actual build platform instead of trusting the lockfile
+        # verbatim, so it always fetches the right one.
+        - npm install
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
