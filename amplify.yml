@@ -3,15 +3,20 @@ frontend:
   phases:
     preBuild:
       commands:
-        # npm ci only installs the platform-specific optional native binding
-        # recorded in package-lock.json for whatever machine last regenerated
-        # it (see https://github.com/npm/cli/issues/4828) — rolldown (Vite's
-        # bundler) ships a native binding per OS/arch, so a lockfile
-        # regenerated on a dev machine other than Amplify's linux-x64 build
-        # image leaves that binding out, and vite build then crashes with
-        # "Cannot find native binding". npm install re-resolves optional
-        # deps for the actual build platform instead of trusting the lockfile
-        # verbatim, so it always fetches the right one.
+        # rolldown (Vite's bundler) ships a native binding per OS/arch as an
+        # optional dependency. Whichever machine last generated
+        # package-lock.json only has that machine's binding recorded in it
+        # (see https://github.com/npm/cli/issues/4828) — our committed lock
+        # is from a Windows dev machine, so it's missing
+        # @rolldown/binding-linux-x64-gnu. `npm install` alone still trusts
+        # an existing lockfile as satisfied and won't add the missing
+        # platform's binding; only a full fresh resolution does (this is the
+        # fix the npm error message itself names: delete both
+        # node_modules AND package-lock.json, then reinstall). The build
+        # cache below only affects later builds' node_modules, not this
+        # step, so this always forces Amplify's linux-x64 build image to
+        # resolve its own binding regardless of what's committed.
+        - rm -rf node_modules package-lock.json
         - npm install
     build:
       commands:
@@ -20,6 +25,8 @@ frontend:
     baseDirectory: dist
     files:
       - '**/*'
+  # No node_modules cache: preBuild deletes it every run (see above), so
+  # caching it would only waste time uploading/downloading a cache that
+  # gets thrown away immediately.
   cache:
-    paths:
-      - node_modules/**/*
+    paths: []
