@@ -384,6 +384,9 @@ export const fr: LocaleShape<typeof en> = {
         "Toujours en cours après plusieurs minutes — cela peut simplement être lent, ou le processus qui la traitait a pu s'arrêter brutalement. Le backend relance automatiquement toute tâche encore bloquée après 15 minutes ; utilisez Relancer si vous ne voulez pas attendre.",
       retry: "Relancer",
       retrying: "Relance…",
+      retrySuccess:
+        "Relancée — la tâche est de nouveau en file d'attente (« en attente ») et s'exécutera à nouveau sous peu. Elle disparaît de « Nécessite votre attention » jusqu'à ce qu'elle reprenne (ou échoue) à nouveau ; passez sur « Toutes » ou « En attente » pour la suivre.",
+      retryFailed: "Impossible de relancer cette tâche : {{message}}",
       loadFailed: "Échec du chargement des tâches : {{message}}",
       emptyFiltered: "Aucune tâche ne correspond à ce filtre.",
     },

@@ -380,6 +380,9 @@ export const en = {
         "Still running after several minutes — may just be slow, or the process handling it died outright. The backend automatically retries anything still stuck after 15 minutes; use Retry if you don't want to wait.",
       retry: "Retry",
       retrying: "Retrying…",
+      retrySuccess:
+        "Retried — the job is back in the queue as pending and will run again shortly. It'll drop out of \"Needs attention\" until it starts running (or fails) again; switch to \"All\" or \"Pending\" to watch it.",
+      retryFailed: "Couldn't retry this job: {{message}}",
       loadFailed: "Failed to load jobs: {{message}}",
       emptyFiltered: "No jobs match this filter.",
     },

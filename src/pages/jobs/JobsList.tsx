@@ -42,10 +42,23 @@ export function JobsList() {
   const jobs = useJobsList(filterToStatusParam(filter))
   const retryJob = useRetryJob()
   const [retryingId, setRetryingId] = React.useState<string | null>(null)
+  // Retrying moves a job to "pending", which drops out of the default
+  // "needs attention" (running/error) filter the instant it succeeds — this
+  // is what's supposed to happen, but a row silently vanishing looks like a
+  // bug rather than "queued for another attempt," so a confirmation banner
+  // says so explicitly.
+  const [retryResult, setRetryResult] = React.useState<
+    { ok: true } | { ok: false; message: string } | null
+  >(null)
 
   function onRetry(id: string) {
     setRetryingId(id)
-    retryJob.mutate(id, { onSettled: () => setRetryingId(null) })
+    setRetryResult(null)
+    retryJob.mutate(id, {
+      onSuccess: () => setRetryResult({ ok: true }),
+      onError: (err) => setRetryResult({ ok: false, message: err.message }),
+      onSettled: () => setRetryingId(null),
+    })
   }
 
   return (
@@ -54,9 +67,20 @@ export function JobsList() {
         <h1 className="font-heading text-2xl text-navy">{t("jobs.list.title")}</h1>
       </div>
 
+      {retryResult && (
+        <p className={retryResult.ok ? "text-sm text-ink-500" : "text-destructive text-sm"}>
+          {retryResult.ok
+            ? t("jobs.list.retrySuccess")
+            : t("jobs.list.retryFailed", { message: retryResult.message })}
+        </p>
+      )}
+
       <SegmentedControl
         value={filter}
-        onChange={setFilter}
+        onChange={(value) => {
+          setFilter(value)
+          setRetryResult(null)
+        }}
         options={[
           { value: "attention", label: t("jobs.list.filterAttention") },
           { value: "all", label: t("jobs.list.filterAll") },
