@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
-import type { Criticality, RequirementStatus, SourceType } from "@/lib/types"
+import type { Criticality, JobStatus, RequirementStatus, SourceType } from "@/lib/types"
 
 // Centralizes the brief's semantic badge color table so no page hand-rolls
 // its own status colors. Badge visuals only — Badge itself stays generic.
@@ -28,6 +28,7 @@ const NEUTRAL = "bg-[#edf0f3] text-ink-500"
 const GREEN_TINT = "bg-green-tint text-primary"
 const AMBER_TINT = "bg-attention-tint text-attention"
 const NAVY_FILLED = "bg-navy text-white"
+const RED_TINT = "bg-danger-tint text-destructive"
 
 export function ActiveStatusBadge({ active }: { active: boolean }) {
   const { t } = useTranslation()
@@ -65,4 +66,17 @@ export function SourceTypeBadge({ type }: { type: SourceType }) {
       {t(`enums.sourceType.${type}`)}
     </BadgePill>
   )
+}
+
+export function JobStatusBadge({ status }: { status: JobStatus }) {
+  const { t } = useTranslation()
+  const className =
+    status === "done"
+      ? GREEN_TINT
+      : status === "error"
+        ? RED_TINT
+        : status === "running"
+          ? AMBER_TINT
+          : NEUTRAL
+  return <BadgePill className={className}>{t(`enums.jobStatus.${status}`)}</BadgePill>
 }

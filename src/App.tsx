@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { queryClient } from "@/lib/queryClient"
+import { JobsList } from "@/pages/jobs/JobsList"
 import { Login } from "@/pages/Login"
 import { RequirementDetail } from "@/pages/requirements/RequirementDetail"
 import { RequirementsList } from "@/pages/requirements/RequirementsList"
@@ -34,6 +35,7 @@ export function App() {
                     <Route path="sources/:id" element={<SourceDetail />} />
                     <Route path="requirements" element={<RequirementsList />} />
                     <Route path="requirements/:id" element={<RequirementDetail />} />
+                    <Route path="jobs" element={<JobsList />} />
                   </Route>
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

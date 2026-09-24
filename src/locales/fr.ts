@@ -14,6 +14,7 @@ export const fr: LocaleShape<typeof en> = {
   nav: {
     sources: "Sources",
     requirements: "Exigences",
+    jobs: "Tâches",
     logout: "Déconnexion",
   },
   login: {
@@ -111,6 +112,19 @@ export const fr: LocaleShape<typeof en> = {
     evidenceWeight: {
       formal: "Formelle",
       lightweight: "Allégée",
+    },
+    jobStatus: {
+      pending: "En attente",
+      running: "En cours",
+      done: "Terminée",
+      error: "Erreur",
+    },
+    jobType: {
+      ingest_document: "Ingestion de document",
+      analyze_company: "Analyse d'entreprise",
+      ingest_source: "Ingestion de source",
+      extract_requirements: "Extraction des exigences",
+      gap_sweep: "Balayage des écarts",
     },
   },
   sources: {
@@ -352,6 +366,26 @@ export const fr: LocaleShape<typeof en> = {
         guidanceLabel: "Consigne (facultative)",
         hintLabel: "Indice (facultatif)",
       },
+    },
+  },
+  jobs: {
+    list: {
+      title: "File des tâches",
+      filterAttention: "Nécessite votre attention",
+      filterAll: "Toutes",
+      colType: "Type",
+      colStatus: "Statut",
+      colAttempts: "Tentatives",
+      colUpdated: "Mise à jour",
+      colError: "Erreur",
+      errorBadge: "Erreur",
+      stuckBadge: "Bloquée ?",
+      stuckInfo:
+        "Toujours en cours après plusieurs minutes — cela peut simplement être lent, ou le processus qui la traitait a pu s'arrêter brutalement. Le backend relance automatiquement toute tâche encore bloquée après 15 minutes ; utilisez Relancer si vous ne voulez pas attendre.",
+      retry: "Relancer",
+      retrying: "Relance…",
+      loadFailed: "Échec du chargement des tâches : {{message}}",
+      emptyFiltered: "Aucune tâche ne correspond à ce filtre.",
     },
   },
   api: {

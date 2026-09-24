@@ -20,6 +20,7 @@ export function AppLayout() {
   const navItems = [
     { to: "/sources", label: t("nav.sources") },
     { to: "/requirements", label: t("nav.requirements") },
+    { to: "/jobs", label: t("nav.jobs") },
   ]
 
   React.useEffect(() => onForbidden(() => setForbidden(true)), [])

@@ -197,3 +197,26 @@ export type SourceTexts = {
   content_char_count: number
   truncated: boolean
 }
+
+export type JobStatus = "pending" | "running" | "done" | "error"
+
+// GET /admin/jobs, POST /admin/jobs/{id}/retry — every ingestion/extraction/
+// gap-sweep/document/analysis job (migration 021_jobs.sql). `type` isn't a
+// closed enum on the frontend — new job types can ship backend-side without
+// a matching UI change, so it's rendered with a translation-or-raw-value
+// fallback rather than a strict union.
+export type Job = {
+  id: string
+  type: string
+  payload: Record<string, unknown>
+  status: JobStatus
+  dedup_key: string | null
+  attempts: number
+  max_attempts: number
+  run_after: string
+  locked_by: string | null
+  locked_at: string | null
+  last_error: string | null
+  created_at: string
+  updated_at: string
+}

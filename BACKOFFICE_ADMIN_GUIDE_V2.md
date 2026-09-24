@@ -256,6 +256,37 @@ Manage source regulatory documents and trigger automated background extraction.
 | GET | `/admin/sources/monitoring` | Operational health dashboard across all knowledge sources. |
 | GET | `/admin/sources/vocabulary` | Permitted dropdown values (`source_types`, `scrape_frequencies`, `applies_to`). |
 
+`POST /admin/sources` and `/admin/sources/pdf` now enqueue ingestion
+automatically right after registration — no separate `/ingest` click
+needed, and `source_ingestion.ingest` itself now uses a freshly-inferred
+certification (when none was tagged yet) to decide whether to enqueue
+extraction, instead of only ever looking at what was tagged BEFORE the
+scrape. The full pipeline (scrape → infer context → extract requirements →
+gap-sweep) runs on its own for a newly-registered source; `/ingest` and
+`/extract-requirements` remain for re-running it manually (e.g. after a
+correction, or a scheduled re-scrape).
+
+### 4.3 Job Queue (`/api/v2/admin/jobs`)
+
+The back-office's replacement for fixing a stuck/failed job over a bastion
+SQL session — every ingestion/extraction/gap-sweep/document/analysis job
+(`app/services/jobs/queue.py`) lands in this same table, admin-visible.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/admin/jobs` | Recent jobs, newest-updated first. `?status_filter=running,error` to surface anything stuck or failed; omit for everything. `?limit=` (default 100). |
+| POST | `/admin/jobs/{id}/retry` | Reset a job — stuck `running`, terminal `error`, or even still-`pending` — to a fresh `pending` attempt (`attempts` resets to 0). |
+
+A job can end up stuck `running` forever if the process executing it was
+killed outright (not a normal failure) — e.g. an ECS task replaced for
+failing health checks, an OOM kill, a deploy interrupting a still-running
+task. Suggested panel: poll `GET /admin/jobs?status_filter=running,error`
+periodically, flag anything `running` whose `updated_at` is more than a
+few minutes old as "looks stuck," and offer the retry button on it — the
+backend already self-heals this after 15 minutes (`reclaim_stale_jobs`,
+migration 030), so the button is for "I don't want to wait," not a
+required step.
+
 #### Ingestion Workflow
 
 ```mermaid

@@ -12,6 +12,7 @@ export const en = {
   nav: {
     sources: "Sources",
     requirements: "Requirements",
+    jobs: "Jobs",
     logout: "Log out",
   },
   login: {
@@ -109,6 +110,19 @@ export const en = {
     evidenceWeight: {
       formal: "Formal",
       lightweight: "Lightweight",
+    },
+    jobStatus: {
+      pending: "Pending",
+      running: "Running",
+      done: "Done",
+      error: "Error",
+    },
+    jobType: {
+      ingest_document: "Ingest document",
+      analyze_company: "Analyze company",
+      ingest_source: "Ingest source",
+      extract_requirements: "Extract requirements",
+      gap_sweep: "Gap sweep",
     },
   },
   sources: {
@@ -348,6 +362,26 @@ export const en = {
         guidanceLabel: "Guidance (optional)",
         hintLabel: "Hint (optional)",
       },
+    },
+  },
+  jobs: {
+    list: {
+      title: "Job queue",
+      filterAttention: "Needs attention",
+      filterAll: "All",
+      colType: "Type",
+      colStatus: "Status",
+      colAttempts: "Attempts",
+      colUpdated: "Updated",
+      colError: "Error",
+      errorBadge: "Error",
+      stuckBadge: "Stuck?",
+      stuckInfo:
+        "Still running after several minutes — may just be slow, or the process handling it died outright. The backend automatically retries anything still stuck after 15 minutes; use Retry if you don't want to wait.",
+      retry: "Retry",
+      retrying: "Retrying…",
+      loadFailed: "Failed to load jobs: {{message}}",
+      emptyFiltered: "No jobs match this filter.",
     },
   },
   api: {
