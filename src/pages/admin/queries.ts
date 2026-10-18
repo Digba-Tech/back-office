@@ -2,11 +2,16 @@ import { useQuery } from "@tanstack/react-query"
 
 import { adminApi } from "@/lib/api"
 
+import { auditedQueryOptions } from "./audited"
 import type {
+  AccessLog,
+  CustomerDossier,
+  DocumentProcessing,
   MetricsCosts,
   MetricsEfficacy,
   MetricsOverview,
   MetricsPipeline,
+  MetricsReport,
   MetricsUsage,
 } from "./types"
 import type { WindowParams } from "./window"
@@ -75,5 +80,72 @@ export function useMetricsEfficacy(w: WindowParams) {
     queryFn: () =>
       adminApi.get<MetricsEfficacy>(`/admin/metrics/efficacy${windowQuery(w)}`),
     staleTime: STALE_TIME,
+  })
+}
+
+/**
+ * Aggregated server-side for the month. Not composed from the daily
+ * endpoints: those values are already rounded, and summing rounded numbers
+ * is how a monthly figure stops matching the invoice (§8.3).
+ */
+export function useMetricsReport(month: string) {
+  return useQuery({
+    queryKey: ["admin", "metrics", "report", month] as const,
+    queryFn: () =>
+      adminApi.get<MetricsReport>(
+        `/admin/metrics/report${adminApi.query({ month })}`
+      ),
+    staleTime: STALE_TIME,
+  })
+}
+
+// --- The audited family ----------------------------------------------------
+// Everything below writes an immutable row to admin_access_log per call,
+// on a 404 as much as on a 200. auditedQueryOptions turns off every
+// automatic refetch and the retry, so each row corresponds to a human
+// deciding to look at something.
+
+export const customerKeys = {
+  dossier: (id: string) => ["admin", "customers", id] as const,
+  processing: (id: string, documentId: string) =>
+    ["admin", "customers", id, "documents", documentId] as const,
+  accessLog: (id: string) => ["admin", "customers", id, "access-log"] as const,
+}
+
+export function useCustomerDossier(companyId: string, enabled = true) {
+  return useQuery({
+    queryKey: customerKeys.dossier(companyId),
+    queryFn: () => adminApi.get<CustomerDossier>(`/admin/customers/${companyId}`),
+    enabled,
+    ...auditedQueryOptions,
+  })
+}
+
+export function useDocumentProcessing(
+  companyId: string,
+  documentId: string,
+  enabled = true
+) {
+  return useQuery({
+    queryKey: customerKeys.processing(companyId, documentId),
+    queryFn: () =>
+      adminApi.get<DocumentProcessing>(
+        `/admin/customers/${companyId}/documents/${documentId}/processing`
+      ),
+    enabled,
+    ...auditedQueryOptions,
+  })
+}
+
+/**
+ * Includes the request that fetched it — the gate writes before the body
+ * runs, so this log always shows at least the view you are looking at.
+ */
+export function useAccessLog(companyId: string, enabled = true) {
+  return useQuery({
+    queryKey: customerKeys.accessLog(companyId),
+    queryFn: () => adminApi.get<AccessLog>(`/admin/customers/${companyId}/access-log`),
+    enabled,
+    ...auditedQueryOptions,
   })
 }

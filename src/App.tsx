@@ -42,6 +42,18 @@ const Efficacy = React.lazy(() =>
   import("@/pages/admin/Efficacy").then((m) => ({ default: m.Efficacy }))
 )
 
+const Report = React.lazy(() =>
+  import("@/pages/admin/Report").then((m) => ({ default: m.Report }))
+)
+
+const CustomerDetail = React.lazy(() =>
+  import("@/pages/admin/CustomerDetail").then((m) => ({ default: m.CustomerDetail }))
+)
+
+const CustomerDocument = React.lazy(() =>
+  import("@/pages/admin/CustomerDocument").then((m) => ({ default: m.CustomerDocument }))
+)
+
 // "/" resolves to whichever face this admin was last in, so someone who
 // lives in the admin face doesn't pass through Sources every morning.
 function FaceHome() {
@@ -93,7 +105,13 @@ export function App() {
                       <Route path="pipeline" element={<Pipeline />} />
                       <Route path="costs" element={<Costs />} />
                       <Route path="customers" element={<Customers />} />
+                      <Route path="customers/:id" element={<CustomerDetail />} />
+                      <Route
+                        path="customers/:id/documents/:documentId"
+                        element={<CustomerDocument />}
+                      />
                       <Route path="efficacy" element={<Efficacy />} />
+                      <Route path="report" element={<Report />} />
                     </Route>
 
                     <Route

@@ -336,3 +336,100 @@ The gate runs before the route body, so an access is recorded even when the thin
 ```
 
 **Put this on the costs page**, e.g. "Token rates as of 17 Oct 2026 — AWS Pricing API". Costs for models AWS prices are derived from this card, not from an invoice: if AWS changes a price and nobody re-runs `scripts/sync_bedrock_pricing.py`, the figures drift quietly. Surfacing the date is what keeps that in front of whoever is reading the number. `unpriced_calls > 0` means part of the total has no rate at all and the figure is incomplete — worth a warning rather than a footnote.
+
+---
+
+## 9. Second round of frontend questions
+
+### 9.1 `/admin/metrics/report` — full shape, and an empty month
+
+Every block, from a live response. It **does** carry a `window`, same as the other endpoints. An empty month is **200 with zeros**, never a 404 — a quiet month is a fact about the month, not a missing resource.
+
+```json
+{
+  "month": "2026-10",
+  "window": { "since": "2026-10-01", "until": "2026-10-31",
+              "last_day": "2026-10-31", "includes_partial_day": true },
+  "adoption":    { "companies_total": 15, "companies_active": 12, "signups": 3 },
+  "engagement":  { "documents_processed": 52 },
+  "efficacy":    { "findings_opened": 507, "findings_resolved": 18,
+                   "resolved_by_user": 11, "resolved_by_system": 7,
+                   "resolution_times":   [ /* see 9.3 */ ],
+                   "resolution_buckets": [ /* see 9.3 */ ] },
+  "reliability": { "pipeline_runs": 52, "success_pct": 94.2, "errors": 3 },
+  "economics":   { "cost_usd": 412.80, "wasted_usd": 8.10, "calls": 1284,
+                   "unpriced_calls": 0, "rate_card": [ /* see 8.9 */ ] },
+  "previous":    { /* the same shape for the prior month;
+                      its own `previous` is always null */ }
+}
+```
+
+On an empty month the counts are `0`, the arrays are `[]`, and `success_pct` / `cost_usd` are **`null`** — no runs is unknown rather than 0%, and nothing priced is unknown rather than free. §4.1 applies here too.
+
+### 9.2 `/admin/customers/*` — dossier shapes
+
+`GET /admin/customers/{company_id}` returns `{company, documents[], findings[], readiness[]}`:
+
+```
+company      id, user_id, name, sectors[], operating_countries[], export_regions[],
+             certifications[], last_analyzed_at, created_at, locale
+documents[]  id, filename, status, detected_type, uploaded_at
+findings[]   id, company_id, finding_type, finding_origin, severity, title,
+             description, ai_reasoning, rule_code, related_document_ids[],
+             confidence, resolved, detected_at, rule_id, related_source_ids[],
+             source_excerpt, related_text_id, i18n, lenses[], control_code,
+             fingerprint, subject_type, subject_ref, evidence_status,
+             requirement_key, resolved_at, resolved_by, resolution_note
+readiness[]  id, company_id, snapshot_date, lens, standard, critical_count,
+             warning_count, info_count, overall_progress_pct, total_requirements,
+             completed_requirements, critical_gaps_count, created_at
+```
+
+`GET .../documents/{document_id}/processing` returns `{document, steps[]}`:
+
+```
+document  id, company_id, filename, storage_path, mime_type, file_size, status,
+          detected_type, error_message, uploaded_at, target_plot_id,
+          upload_context, partial, partial_reason, parent_document_id,
+          archive_entry_path
+steps[]   id, document_id, company_id, job_id, step, status, error_message,
+          duration_ms, metadata, created_at
+```
+
+`GET .../access-log` returns `{company_id, entries[]}`:
+
+```
+entries[] id, created_at, admin_user_id, admin_email, action, target_type,
+          target_id, company_id, request_path, ip, user_agent
+```
+
+**On closed vs open for these rows:**
+
+- `steps[].step` is the **same open set** as `daily_pipeline_health.step` — one database column, one vocabulary, so the fallback you write once covers both. It is not its own set.
+- `steps[].status` is the closed `success` / `error` / `skipped`.
+- `steps[].metadata` is free-form JSONB whose keys vary **by step**: OCR carries `pages_ocred`, `pages_truncated`, `pages_vision_degraded`; extraction carries `content_type`, `document_type`, `confidence`. Treat it as an opaque bag — render the keys you know, ignore the rest. Do not assume a schema.
+- `access_log.action` is **open** and grows with each new audited route. Today: `list_customers`, `view_company`, `view_document_processing`, `view_access_log`.
+
+Note that `findings[]` and `document` carry genuine **free text**. That is the point of this path, and why it is the audited one; none of those fields exist anywhere under `/admin/metrics/*`.
+
+### 9.3 You were right — the histogram now exists
+
+Percentiles were not a deliberate call, they were a gap. §5 asks for a histogram for a real reason, the API could not serve it, and the API was the thing that was wrong. **Do not downgrade §5.**
+
+`efficacy.resolution_buckets[]` serves a fixed ladder, per month and severity:
+
+```json
+{ "month": "2026-10", "severity": "critical", "bucket_order": 3,
+  "bucket": "4h_24h", "lower_hours": 4.0, "upper_hours": 24.0,
+  "resolved_count": 11 }
+```
+
+Ladder: `under_1h`, `1h_4h`, `4h_24h`, `1d_7d`, `over_7d`. Fixed rather than computed, because a histogram whose bins move month to month is not comparable month to month — and comparison is the point. **Every rung is emitted for each observed (month, severity), including zeros**, so the grid can be rendered directly: a missing bar reads as missing data, when a zero is itself information ("nobody resolves within an hour"). Sort by `bucket_order`.
+
+`resolution_times[]` stays, as the p50/p90 summary **above** the histogram rather than instead of it.
+
+**Both gained a `month` column and are now window-bounded.** That is a shape change on an endpoint you are mid-build against, and I am sorry for the churn — but it fixes a real bug found while answering this question. With no time axis, the monthly report's `previous` block was repeating the current month's resolution figures: all-time values presented as last month's, on a report a non-engineer acts on. Better now than after the page ships.
+
+### 9.4 One more fix, unprompted
+
+Numbers on the **drill-down** path were still arriving as strings — `readiness[].overall_progress_pct` came back as `"41.50"`. §4.2 said this was fixed, and it was, but only for the analytics views; the dossier endpoints reach the database by a different route and hit the same trap independently. Both paths now share one conversion. If you have written a `parseFloat` guard against this anywhere, you can drop it.

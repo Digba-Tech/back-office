@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 
 import { SeriesTable } from "@/components/charts/series-table"
 import { TimeSeries } from "@/components/charts/time-series"
@@ -193,7 +194,16 @@ function CompaniesTable({
         <TableBody>
           {companies.map((company) => (
             <TableRow key={company.company_id}>
-              <TableCell className="font-medium">{company.company_name}</TableCell>
+              <TableCell className="font-medium">
+                {/* Into the audited drill-down. This list is not audited;
+                    following this link is. */}
+                <Link
+                  to={`/admin/customers/${company.company_id}`}
+                  className="text-navy underline-offset-4 hover:underline"
+                >
+                  {company.company_name}
+                </Link>
+              </TableCell>
               <TableCell className="text-right tabular-nums">
                 {t("admin.customers.documentsRatio", {
                   done: count(company.documents_done),

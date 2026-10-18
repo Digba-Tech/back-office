@@ -266,10 +266,38 @@ export type EfficacyOutcome = {
 }
 
 export type ResolutionTime = {
+  month: string
   severity: Severity
   resolved_count: number
   p50_hours: number | null
   p90_hours: number | null
+}
+
+/** Fixed ladder, in `bucket_order`. */
+export type ResolutionBucketKey =
+  | "under_1h"
+  | "1h_4h"
+  | "4h_24h"
+  | "1d_7d"
+  | "over_7d"
+
+/**
+ * The distribution behind the percentiles. Bins are fixed rather than
+ * computed, because a histogram whose bins move month to month is not
+ * comparable month to month — and comparison is the point.
+ *
+ * Every rung is emitted for each observed (month, severity), zeros
+ * included: a missing bar reads as missing data, when a zero is itself
+ * information ("nobody resolves within an hour").
+ */
+export type ResolutionBucket = {
+  month: string
+  severity: Severity
+  bucket_order: number
+  bucket: ResolutionBucketKey
+  lower_hours: number | null
+  upper_hours: number | null
+  resolved_count: number
 }
 
 /**
@@ -320,8 +348,204 @@ export type ReadinessRow = {
 export type MetricsEfficacy = {
   window: MetricsWindow
   outcomes: EfficacyOutcome[]
+  /** The p50/p90 summary that sits above the histogram, not instead of it. */
   resolution_times: ResolutionTime[]
+  resolution_buckets: ResolutionBucket[]
   evidence_quality: EvidenceQuality[]
   catalogue: CatalogueRow[]
   readiness: ReadinessRow[]
+}
+
+// --- /admin/metrics/report?month= -----------------------------------------
+// Aggregated server-side. Composing this from the daily endpoints and
+// summing would be subtly wrong: those values are already rounded, and
+// adding rounded numbers is how a monthly figure stops matching the
+// invoice (§8.3).
+
+export type ReportBlocks = {
+  month: string
+  window: MetricsWindow
+  adoption: {
+    companies_total: number
+    companies_active: number
+    signups: number
+  }
+  engagement: {
+    documents_processed: number
+  }
+  efficacy: {
+    findings_opened: number
+    findings_resolved: number
+    resolved_by_user: number
+    resolved_by_system: number
+    resolution_times: ResolutionTime[]
+    resolution_buckets: ResolutionBucket[]
+  }
+  reliability: {
+    pipeline_runs: number
+    success_pct: number | null
+    errors: number
+  }
+  economics: {
+    cost_usd: number | null
+    wasted_usd: number | null
+    calls: number
+    unpriced_calls: number
+    rate_card: RateCard[]
+  }
+}
+
+/**
+ * An empty month is 200 with zeros, never a 404 — a quiet month is a fact
+ * about the month, not a missing resource. Counts come back 0, arrays
+ * empty, and `success_pct` / `cost_usd` null: no runs is unknown rather
+ * than 0%, nothing priced is unknown rather than free.
+ */
+export type MetricsReport = ReportBlocks & {
+  /** The prior month, same shape. Its own `previous` is always null. */
+  previous: (ReportBlocks & { previous: null }) | null
+}
+
+// --- /admin/customers/* (audited) -----------------------------------------
+// Every call to this family writes an immutable row to admin_access_log,
+// including on a 404. These rows carry genuine customer free text — which
+// is the point of this path, and why it is the audited one.
+
+export type CustomerCompany = {
+  id: string
+  user_id: string
+  name: string
+  sectors: string[]
+  operating_countries: string[]
+  export_regions: string[]
+  certifications: string[]
+  last_analyzed_at: string | null
+  created_at: string
+  locale: string | null
+}
+
+export type CustomerDocument = {
+  id: string
+  filename: string
+  status: DocumentStatus
+  detected_type: string | null
+  uploaded_at: string
+}
+
+export type Finding = {
+  id: string
+  company_id: string
+  finding_type: string
+  finding_origin: string
+  severity: Severity
+  title: string
+  description: string | null
+  ai_reasoning: string | null
+  rule_code: string | null
+  related_document_ids: string[]
+  confidence: number | null
+  resolved: boolean
+  detected_at: string
+  rule_id: string | null
+  related_source_ids: string[]
+  source_excerpt: string | null
+  related_text_id: string | null
+  i18n: Record<string, unknown> | null
+  lenses: Lens[]
+  control_code: string | null
+  fingerprint: string | null
+  subject_type: string | null
+  subject_ref: string | null
+  evidence_status: string | null
+  requirement_key: string | null
+  resolved_at: string | null
+  resolved_by: string | null
+  resolution_note: string | null
+}
+
+export type CustomerReadiness = {
+  id: string
+  company_id: string
+  snapshot_date: string
+  lens: Lens
+  standard: Standard
+  critical_count: number
+  warning_count: number
+  info_count: number
+  overall_progress_pct: number | null
+  total_requirements: number
+  completed_requirements: number
+  critical_gaps_count: number
+  created_at: string
+}
+
+export type CustomerDossier = {
+  company: CustomerCompany
+  documents: CustomerDocument[]
+  findings: Finding[]
+  readiness: CustomerReadiness[]
+}
+
+export type DocumentDetail = {
+  id: string
+  company_id: string
+  filename: string
+  storage_path: string | null
+  mime_type: string | null
+  file_size: number | null
+  status: DocumentStatus
+  detected_type: string | null
+  error_message: string | null
+  uploaded_at: string
+  target_plot_id: string | null
+  upload_context: string | null
+  partial: boolean
+  partial_reason: string | null
+  parent_document_id: string | null
+  archive_entry_path: string | null
+}
+
+export type ProcessingStep = {
+  id: string
+  document_id: string
+  company_id: string
+  job_id: string | null
+  /** The same open vocabulary as the pipeline's `step` — one column, one set. */
+  step: PipelineStep
+  status: PipelineStatus
+  error_message: string | null
+  duration_ms: number | null
+  /**
+   * Free-form JSONB whose keys vary by step: OCR carries `pages_ocred`,
+   * `pages_truncated`, `pages_vision_degraded`; extraction carries
+   * `content_type`, `document_type`, `confidence`. An opaque bag — render
+   * the keys you know and ignore the rest; do not assume a schema.
+   */
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export type DocumentProcessing = {
+  document: DocumentDetail
+  steps: ProcessingStep[]
+}
+
+export type AccessLogEntry = {
+  id: string
+  created_at: string
+  admin_user_id: string
+  admin_email: string
+  /** Open — grows with each new audited route. */
+  action: string
+  target_type: string | null
+  target_id: string | null
+  company_id: string | null
+  request_path: string
+  ip: string | null
+  user_agent: string | null
+}
+
+export type AccessLog = {
+  company_id: string
+  entries: AccessLogEntry[]
 }

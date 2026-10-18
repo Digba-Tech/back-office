@@ -24,8 +24,7 @@ export type Face = {
   maxWidth: string
 }
 
-// Only routes that exist are listed — a nav item is not a roadmap. The
-// remaining admin route (/admin/report) joins this list when it ships.
+// Only routes that exist are listed — a nav item is not a roadmap.
 export const FACES: Record<FaceId, Face> = {
   knowledge: {
     id: "knowledge",
@@ -48,6 +47,7 @@ export const FACES: Record<FaceId, Face> = {
       { to: "/admin/costs", labelKey: "nav.costs" },
       { to: "/admin/customers", labelKey: "nav.customers" },
       { to: "/admin/efficacy", labelKey: "nav.efficacy" },
+      { to: "/admin/report", labelKey: "nav.report" },
     ],
     maxWidth: "max-w-[1440px]",
   },

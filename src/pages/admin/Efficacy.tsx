@@ -58,10 +58,59 @@ export function Efficacy() {
     return { opened, resolved, byUser, bySystem }
   }, [outcomes])
 
+  // Percentiles cannot be combined across months — a p50 of p50s is not a
+  // p50 — so the chart shows the latest month in the window and the table
+  // carries every month, rather than inventing a blended figure.
   const resolutionTimes = React.useMemo(
-    () => [...(data?.resolution_times ?? [])],
+    () =>
+      [...(data?.resolution_times ?? [])].sort(
+        (a, b) => a.month.localeCompare(b.month) || a.severity.localeCompare(b.severity)
+      ),
     [data]
   )
+
+  const latestMonth = resolutionTimes.at(-1)?.month
+  const latestResolutionTimes = React.useMemo(
+    () => resolutionTimes.filter((row) => row.month === latestMonth),
+    [resolutionTimes, latestMonth]
+  )
+
+  // One row per month AND severity, so the first column has to carry both
+  // or the same month appears three times with no way to tell them apart.
+  const resolutionRows = React.useMemo(
+    () =>
+      resolutionTimes.map((row) => ({
+        ...row,
+        period: `${row.month} · ${keyLabel("severity", row.severity)}`,
+      })),
+    [resolutionTimes, keyLabel]
+  )
+
+  // Counts, unlike percentiles, do sum across months.
+  const histogram = React.useMemo(() => {
+    const buckets = new Map<
+      string,
+      { bucket: string; bucket_order: number } & Record<string, number | string>
+    >()
+    for (const row of data?.resolution_buckets ?? []) {
+      const entry = buckets.get(row.bucket) ?? {
+        bucket: row.bucket,
+        bucket_order: row.bucket_order,
+        critical: 0,
+        warning: 0,
+        info: 0,
+      }
+      entry[row.severity] = ((entry[row.severity] as number) ?? 0) + row.resolved_count
+      buckets.set(row.bucket, entry)
+    }
+    return [...buckets.values()].sort((a, b) => a.bucket_order - b.bucket_order)
+  }, [data])
+
+  const severitySeries = [
+    { key: "critical", label: keyLabel("severity", "critical") },
+    { key: "warning", label: keyLabel("severity", "warning") },
+    { key: "info", label: keyLabel("severity", "info") },
+  ]
 
   const evidence = React.useMemo(() => data?.evidence_quality ?? [], [data])
   const catalogue = React.useMemo(() => data?.catalogue ?? [], [data])
@@ -169,34 +218,67 @@ export function Efficacy() {
         />
       </Panel>
 
-      {/* The guide asks for a histogram here, because a central tendency
-          hides the bimodality that makes this number actionable. The
-          endpoint exposes p50 and p90 per severity rather than bucketed
-          counts, so percentiles are what can honestly be drawn — see the
-          note raised with the backend. */}
+      {/* The distribution, not a central tendency: a mean or a median hides
+          the split between findings closed within the hour and findings
+          that sit for a month, and that split is the actionable part.
+          Zeros are rendered, because "nobody resolves within an hour" is
+          information and a missing bar would read as missing data. */}
+      <Panel
+        title={t("admin.efficacy.histogramTitle")}
+        caption={t("admin.efficacy.histogramCaption")}
+        isLoading={efficacy.isPending}
+        isEmpty={histogram.length === 0}
+        error={efficacy.error ?? undefined}
+        onRetry={retry}
+        table={
+          <SeriesTable
+            data={histogram}
+            rowKey="bucket"
+            rowLabel={t("admin.efficacy.bucket")}
+            rowFormat={(value) => keyLabel("resolutionBucket", value)}
+            series={severitySeries}
+            valueFormat={count}
+          />
+        }
+      >
+        <StackedBars
+          data={histogram}
+          xKey="bucket"
+          series={severitySeries}
+          valueFormat={count}
+          labelFormat={(value) => keyLabel("resolutionBucket", value)}
+          colors={[STATUS_COLORS.danger, STATUS_COLORS.attention, STATUS_COLORS.neutral]}
+          ariaLabel={t("admin.efficacy.histogramTitle")}
+        />
+      </Panel>
+
       <Panel
         title={t("admin.efficacy.resolutionTitle")}
-        caption={t("admin.efficacy.resolutionCaption")}
+        caption={
+          latestMonth
+            ? t("admin.efficacy.resolutionCaption", { month: latestMonth })
+            : undefined
+        }
         isLoading={efficacy.isPending}
         isEmpty={resolutionTimes.length === 0}
         error={efficacy.error ?? undefined}
         onRetry={retry}
         table={
           <SeriesTable
-            data={resolutionTimes}
-            rowKey="severity"
-            rowLabel={t("admin.efficacy.severity")}
-            rowFormat={(value) => keyLabel("severity", value)}
+            data={resolutionRows}
+            rowKey="period"
+            rowLabel={t("admin.efficacy.month")}
             series={[
               { key: "p50_hours", label: t("admin.efficacy.p50") },
               { key: "p90_hours", label: t("admin.efficacy.p90") },
+              { key: "resolved_count", label: t("admin.efficacy.resolved") },
             ]}
             valueFormat={hours}
           />
         }
       >
         <CategoryBars
-          data={resolutionTimes}
+          data={latestResolutionTimes}
           categoryKey="severity"
           valueKey="p50_hours"
           label={t("admin.efficacy.p50")}
