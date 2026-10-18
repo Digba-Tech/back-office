@@ -148,6 +148,47 @@ The requirements review gate is where raw LLM extractions from standards are ver
 | POST | `/admin/requirements/{id}/approve` | Atomically promote `draft` $\rightarrow$ `active`, superseding any previous active version of the same `requirement_key`. |
 | POST | `/admin/requirements/{id}/reject` | Deprecate a draft with an audit reason (`{"reason": "..."}`). |
 
+> [!IMPORTANT]
+> **Requirements are bilingual (migration 035).** Extraction used to ask for a
+> French title while copying the clause verbatim from the standard, so an
+> English source produced a French title over an English clause — exactly what
+> a reviewer saw in this screen. Each requirement now carries:
+>
+> | Field | What it is |
+> |---|---|
+> | `title`, `text`, `section_ref` | flat fallback, in the **source's** language |
+> | `title_i18n`, `text_i18n`, `section_ref_i18n` | `{fr, en}` — prefer these |
+> | `source_text` | the clause **exactly as the standard words it**, never translated |
+> | `source_language` | `"fr"` \| `"en"` \| `null` (unknown, pre-migration) |
+>
+> A reviewer is checking a **translation as well as an extraction**, so show
+> both locales side by side with `source_text` next to them — that is the only
+> way to tell a bad translation from a bad extraction.
+>
+> **Editing.** `PATCH` accepts `title_i18n`, `text_i18n` and `section_ref_i18n`
+> alongside the flat fields, and keeps the two in agreement either way:
+>
+> | You send | What happens |
+> |---|---|
+> | `title_i18n` | stored as sent; flat `title` follows the source-language side |
+> | `title` alone | applied to the pair's source-language side, so the edit is not shadowed by the stale pair |
+> | neither | `i18n` is left untouched — editing a title never wipes the clause's translation |
+>
+> Sending only the flat field used to have **no visible effect**, because
+> clients prefer `*_i18n` and the old pair kept winning. If your editor exposes
+> one box per field, send the pair.
+>
+> **`source_text` is rejected, by design.** It is the citation anchor: a
+> finding's `source_excerpt` is verified against it verbatim, so rewriting it
+> would silently invalidate every citation on that requirement. Fix a bad
+> verbatim by rejecting the draft and re-ingesting the source, not by editing
+> it.
+>
+> Requirements extracted before the migration are translated by the
+> `backfill_requirement_i18n` job, which fills `*_i18n` **without** touching
+> `status` — nothing re-enters this review queue because of it. Until it has
+> run for a given row, `*_i18n` is `null` and the flat field is all there is.
+
 > [!NOTE]
 > `action_id`/`evidence_id` inside `actions`/`evidence_checklist` are plain
 > strings with no server-side generation or per-row uniqueness enforcement —
