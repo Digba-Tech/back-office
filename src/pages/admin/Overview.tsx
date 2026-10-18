@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatCount, formatPercent, formatUsd } from "@/lib/format"
 
 import { useKeyLabel } from "./keys"
+import { PostHogLink } from "./PostHogLink"
 import { useMetricsOverview } from "./queries"
 import { WindowPicker } from "./WindowPicker"
 import { useMetricsWindow } from "./window"
@@ -166,6 +167,8 @@ export function Overview() {
           ariaLabel={t("admin.overview.funnelTitle")}
         />
       </Panel>
+
+      <PostHogLink />
     </div>
   )
 }

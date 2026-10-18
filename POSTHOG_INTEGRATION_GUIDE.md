@@ -1,11 +1,50 @@
 # PostHog Integration Guide
 
 **Document:** `docs/POSTHOG_INTEGRATION_GUIDE.md`
-**Audience:** whoever integrates PostHog into `frontend/` (customer app) and `back-office/`.
-**Companion:** [`BACKOFFICE_ADMIN_METRICS_GUIDE.md`](BACKOFFICE_ADMIN_METRICS_GUIDE.md) — unrelated; that one is the admin API contract. This is its own document because PostHog spans both frontends while admin metrics concerns only the back-office.
+**Audience:** whoever integrates PostHog into `frontend/`, the customer app. **The back-office is NOT instrumented — see §0.**
+**Companion:** [`BACKOFFICE_ADMIN_METRICS_GUIDE.md`](BACKOFFICE_ADMIN_METRICS_GUIDE.md) — the admin API contract, a separate concern.
 **Backend status:** done and deployed to staging. Three server-side lifecycle events, flag-gated.
 
 PostHog is **the only third-party service in the whole system**, and the only place customer-derived data leaves our infrastructure. That is why this document spends more time on what must *not* be sent than on what must.
+
+---
+
+## 0. The back-office is not a tracked app
+
+**Do not add `posthog-js` to `back-office/`. It sends no events, has no
+consent banner, and is never recorded.** PostHog instruments the CUSTOMER
+app only.
+
+An earlier draft of this document said the back-office should emit "a handful
+of page/action events". That was wrong and has been removed. We are not
+measuring how our own staff use the admin tool; we are measuring how
+customers use the product.
+
+The back-office's only relationship to PostHog runs the opposite way —
+pointing an admin AT it.
+
+**Decided: link out.** The back-office does not render PostHog data. It
+carries a link to the PostHog project, and that is the whole integration on
+this side.
+
+- **Where:** the `/admin/overview` page, and `/admin/usage` if it exists —
+  wherever someone is already asking a behavioural question.
+- **How:** `VITE_POSTHOG_PROJECT_URL` (e.g.
+  `https://eu.posthog.com/project/<id>`), opened in a new tab. No API key,
+  no secret, no backend endpoint — nothing serves PostHog data today.
+- **Label it.** Something like *"Behaviour & session replay (PostHog) →"*,
+  not "Analytics". The surrounding numbers are exact figures from our own
+  database; PostHog's are lossy by nature (ad blockers, declined consent,
+  dropped connections). A link reading "Analytics" next to the real metrics
+  invites exactly the conflation ADR-A2 exists to prevent.
+
+Why not embed or proxy: embedding puts lossy numbers unlabelled beside
+exact ones, and proxying PostHog's query API needs a PERSONAL API key
+(secret, unlike the project key) plus queries maintained against their
+schema. Neither is worth it before anyone knows which behavioural numbers
+they actually look at — the same argument that built the CLI before the
+dashboard. Revisit if a specific figure genuinely needs to sit inside an
+existing panel.
 
 ---
 
@@ -94,7 +133,7 @@ declaration_submitted     finding_opened          finding_resolved_clicked
 language_switched
 ```
 
-**Back-office:** a handful of page/action events only. **No replay, ever** — an admin's screen shows several tenants at once, so recording it would disclose one customer's data in a recording about another.
+**Back-office:** nothing. It is not instrumented (§0). Worth stating plainly because the instinct is to add the snippet everywhere: an admin's screen shows several tenants at once, so recording or even autocapturing it would mix one customer's data into a session about another.
 
 **Already emitted by the backend** (do not duplicate these client-side):
 
@@ -172,8 +211,7 @@ Mark these containers `ph-no-capture` explicitly: the document viewer, extracted
    once real customers are recorded.
 4. **Customer app live**, analytics and replay together, each on its own
    consent.
-5. **Back-office live** — analytics only. **Never replay**, under any
-   circumstances.
+5. **Back-office: nothing to do.** It is not instrumented (§0).
 6. **Production backend** — a one-line Terraform change, after step 2 is
    live.
 

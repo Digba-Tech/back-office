@@ -404,6 +404,11 @@ export const fr: LocaleShape<typeof en> = {
     },
   },
   admin: {
+    posthog: {
+      link: "Comportement et relecture de session (PostHog)",
+      caveat:
+        "Ouvre PostHog dans un nouvel onglet. Ses chiffres ne sont pas ceux-ci : la collecte PostHog est lacunaire par nature — bloqueurs de publicité, consentement refusé, connexions interrompues — alors que tout ce qui précède provient de notre propre base de données et est exact. À utiliser pour observer le comportement des clients, pas pour compter.",
+    },
     customer: {
       back: "Tous les clients",
       backToCustomer: "Retour au client",

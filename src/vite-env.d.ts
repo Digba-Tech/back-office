@@ -8,6 +8,12 @@ interface ImportMetaEnv {
   // redirect URLs (unlike supertokens-auth-react's prebuilt UI).
   readonly VITE_API_DOMAIN: string
   readonly VITE_API_BASE_URL: string
+
+  // PostHog project URL, e.g. https://eu.posthog.com/project/<id>. The
+  // back-office is not instrumented — this is only a link out
+  // (POSTHOG_INTEGRATION_GUIDE.md §0). Optional: unset simply hides the
+  // link rather than breaking the page.
+  readonly VITE_POSTHOG_PROJECT_URL?: string
 }
 
 interface ImportMeta {

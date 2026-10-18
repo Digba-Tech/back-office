@@ -341,12 +341,34 @@ The gate runs before the route body, so an access is recorded even when the thin
 
 ## 9. PostHog
 
-Not covered here. PostHog spans both frontends and has nothing to do with the
-admin API, so it has its own document: **`POSTHOG_INTEGRATION_GUIDE.md`**
-(copied into this repo's root). The back-office's part is small and has one
-hard rule — **analytics only, never session replay**, because an admin's
-screen shows several tenants at once and recording it would disclose one
-customer's data in a recording about another.
+**The back-office is not instrumented with PostHog.** Do not add
+`posthog-js` here: no events, no consent banner, no recording. PostHog
+measures how CUSTOMERS use the product, not how our own staff use the admin
+tool — and an admin's screen shows several tenants at once, so capturing it
+would mix one customer's data into a session about another.
+
+**Decided: link out.** The back-office does not render PostHog data. It
+carries a link to the PostHog project, and that is the whole integration on
+this side.
+
+- **Where:** the `/admin/overview` page, and `/admin/usage` if it exists —
+  wherever someone is already asking a behavioural question.
+- **How:** `VITE_POSTHOG_PROJECT_URL` (e.g.
+  `https://eu.posthog.com/project/<id>`), opened in a new tab. No API key,
+  no secret, no backend endpoint — nothing serves PostHog data today.
+- **Label it.** Something like *"Behaviour & session replay (PostHog) →"*,
+  not "Analytics". The surrounding numbers are exact figures from our own
+  database; PostHog's are lossy by nature (ad blockers, declined consent,
+  dropped connections). A link reading "Analytics" next to the real metrics
+  invites exactly the conflation ADR-A2 exists to prevent.
+
+Why not embed or proxy: embedding puts lossy numbers unlabelled beside
+exact ones, and proxying PostHog's query API needs a PERSONAL API key
+(secret, unlike the project key) plus queries maintained against their
+schema. Neither is worth it before anyone knows which behavioural numbers
+they actually look at — the same argument that built the CLI before the
+dashboard. Revisit if a specific figure genuinely needs to sit inside an
+existing panel.
 
 ---
 

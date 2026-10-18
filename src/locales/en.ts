@@ -400,6 +400,11 @@ export const en = {
     },
   },
   admin: {
+    posthog: {
+      link: "Behaviour & session replay (PostHog)",
+      caveat:
+        "Opens PostHog in a new tab. Its figures are not these figures: PostHog capture is lossy by nature — ad blockers, declined consent, connections dropping mid-request — while everything above comes from our own database and is exact. Use it to see how customers behave, not to count anything.",
+    },
     customer: {
       back: "All customers",
       backToCustomer: "Back to customer",

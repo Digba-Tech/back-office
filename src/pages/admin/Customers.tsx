@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { NO_VALUE, formatCount, formatDay, formatDateTime } from "@/lib/format"
 
+import { PostHogLink } from "./PostHogLink"
 import { useMetricsUsage } from "./queries"
 import type { CompanyUsage } from "./types"
 import { WindowPicker } from "./WindowPicker"
@@ -157,6 +158,8 @@ export function Customers() {
           <CompaniesTable companies={companies} language={language} />
         )}
       </section>
+
+      <PostHogLink />
     </div>
   )
 }
