@@ -64,7 +64,7 @@ export function SourceNew() {
           scrape_frequency: scrapeFrequency,
           deep_crawl: deepCrawl,
         })
-        navigate(`/sources/${created.id}`)
+        navigate(`/knowledge/sources/${created.id}`)
       } else {
         if (!file) {
           setError(t("sources.new.errorFileRequired"))
@@ -80,7 +80,7 @@ export function SourceNew() {
         form.set("scrape_frequency", scrapeFrequency)
         form.set("deep_crawl", String(deepCrawl))
         const created = await createPdf.mutateAsync(form)
-        navigate(`/sources/${created.id}`)
+        navigate(`/knowledge/sources/${created.id}`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("sources.new.errorFallback"))

@@ -45,7 +45,7 @@ export function SourcesList() {
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl text-navy">{t("sources.list.title")}</h1>
         <Button asChild>
-          <Link to="/sources/new">{t("sources.list.newSource")}</Link>
+          <Link to="/knowledge/sources/new">{t("sources.list.newSource")}</Link>
         </Button>
       </div>
 
@@ -119,7 +119,7 @@ export function SourcesList() {
               <TableRow key={source.id}>
                 <TableCell>
                   <Link
-                    to={`/sources/${source.id}`}
+                    to={`/knowledge/sources/${source.id}`}
                     className="font-medium text-navy hover:underline"
                   >
                     {source.name}

@@ -75,7 +75,7 @@ export function RequirementsList() {
               <TableRow key={req.id}>
                 <TableCell>
                   <Link
-                    to={`/requirements/${req.id}`}
+                    to={`/knowledge/requirements/${req.id}`}
                     className="font-medium text-navy hover:underline"
                   >
                     {req.title}

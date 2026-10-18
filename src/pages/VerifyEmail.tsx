@@ -88,7 +88,7 @@ export function VerifyEmail() {
   if (emailVerified === true) {
     const from =
       (location.state as { from?: { pathname?: string } } | null)?.from
-        ?.pathname ?? "/sources"
+        ?.pathname ?? "/"
     return <Navigate to={from} replace />
   }
 

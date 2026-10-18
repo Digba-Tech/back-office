@@ -26,6 +26,10 @@
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
     --color-chart-2: var(--chart-2);
+    --color-series-1: var(--series-1);
+    --color-series-2: var(--series-2);
+    --color-series-3: var(--series-3);
+    --color-series-4: var(--series-4);
     --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
     --color-input: var(--input);
@@ -112,6 +116,28 @@
     --chart-3: var(--attention);
     --chart-4: var(--ink-500);
     --chart-5: var(--ink-400);
+
+    /* Categorical series palette for the admin face (metrics guide §5).
+       Deliberately NOT --chart-1..5: those were chosen for badges and
+       accents and fail categorical validation — --chart-3 doubles as
+       --attention, a reserved status colour, and --chart-4/--chart-5 are
+       two greys that full-colour readers cannot reliably separate
+       (ΔE 11.2, below the floor of 15). Existing components still use
+       --chart-*, so these are added alongside rather than over them.
+
+       Light mode only, by decision: there is no .dark block, and
+       automatically lightening these steps fails the lightness band —
+       dark mode would need its own validated palette.
+
+       Fixed order, never cycled: colour follows the entity, so dropping a
+       series must not repaint the survivors. Beyond four, facet into small
+       multiples or fold the tail into "Other" — never invent a fifth hue. */
+    --series-1: #0072b2;
+    --series-2: #d55e00;
+    /* 2.98:1 against the chart surface — requires a visible label. */
+    --series-3: #cc79a7;
+    /* Only with direct labels or texture: CVD separation drops to ΔE 7.6. */
+    --series-4: #009e73;
     --radius: 0.375rem;
     --sidebar: var(--navy);
     --sidebar-foreground: #ffffff;

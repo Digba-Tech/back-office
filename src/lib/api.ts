@@ -8,13 +8,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 export class ApiError extends Error {
   status: number
   body: unknown
+  // Machine-readable cause from the response body, when the backend sends
+  // one. Branch on this, never on `message`: the message is user-facing
+  // text and will be translated (metrics guide §8.7).
+  reason?: string
 
   constructor(status: number, message: string, body?: unknown) {
     super(message)
     this.name = "ApiError"
     this.status = status
     this.body = body
+    this.reason = extractReason(body)
   }
+}
+
+// An analytics read exceeded the 30s statement_timeout on the admin metrics
+// endpoints. Narrowing the date window is the actual fix, so a panel can
+// say so instead of showing a generic failure.
+export const ANALYTICS_TIMEOUT = "analytics_timeout"
+
+export function isAnalyticsTimeout(error: unknown): boolean {
+  return error instanceof ApiError && error.reason === ANALYTICS_TIMEOUT
 }
 
 // A valid, verified session hit an admin-only route without the admin role
@@ -50,6 +64,14 @@ export function onForbidden(listener: Listener): () => void {
 export function onVerificationRequired(listener: Listener): () => void {
   verificationRequiredListeners.add(listener)
   return () => verificationRequiredListeners.delete(listener)
+}
+
+function extractReason(body: unknown): string | undefined {
+  if (body && typeof body === "object") {
+    const reason = (body as Record<string, unknown>).reason
+    if (typeof reason === "string") return reason
+  }
+  return undefined
 }
 
 function extractMessage(body: unknown, fallback: string): string {

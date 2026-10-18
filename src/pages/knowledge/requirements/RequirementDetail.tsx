@@ -29,7 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { formatDateTime } from "@/lib/format"
 
-import { useSourcesVocabulary } from "@/pages/sources/queries"
+import { useSourcesVocabulary } from "@/pages/knowledge/sources/queries"
 import type {
   CheckKind,
   Criticality,
@@ -309,7 +309,7 @@ export function RequirementDetail() {
         </Card>
       </div>
 
-      <Button variant="ghost" className="w-fit" onClick={() => navigate("/requirements")}>
+      <Button variant="ghost" className="w-fit" onClick={() => navigate("/knowledge/requirements")}>
         {t("requirements.detail.backToQueue")}
       </Button>
     </div>

@@ -41,7 +41,7 @@ class ErrorBoundaryInner extends React.Component<Props, State> {
             <Button
               className="w-fit"
               onClick={() => {
-                window.location.href = "/sources"
+                window.location.href = "/"
               }}
             >
               {t("errorBoundary.backToSources")}
