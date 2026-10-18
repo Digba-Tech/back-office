@@ -132,7 +132,7 @@ export function Report() {
           <h1 className="font-heading text-[28px] leading-tight font-semibold text-navy">
             {t("admin.report.title")}
           </h1>
-          {data ? (
+          {data?.window ? (
             <p className="text-sm text-ink-500">
               {formatDay(data.window.since, language)} –{" "}
               {formatDay(data.window.until ?? data.window.last_day, language)}

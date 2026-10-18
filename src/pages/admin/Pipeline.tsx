@@ -165,7 +165,10 @@ export function Pipeline() {
     { key: "p95_worked_ms", label: t("admin.pipeline.p95") },
   ]
 
-  const partialNote = data?.window.includes_partial_day
+  // Guarded on `window` itself, not just on `data`: the contract says every
+  // response carries one, but a response that omits it must degrade to "no
+  // partial-day marker" rather than taking the whole page down.
+  const partialNote = data?.window?.includes_partial_day
     ? t("admin.window.partialDay")
     : undefined
 
