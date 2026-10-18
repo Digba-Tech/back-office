@@ -404,6 +404,17 @@ export const en = {
     },
   },
   admin: {
+    lookup: {
+      title: "Find a customer by contact email",
+      auditedHint:
+        "For when you know the person but not what they called their company. Exact address only. Every search is recorded in the access log with your email — including one that finds nothing, because asking whether someone is a customer is itself a lookup.",
+      placeholder: "name@example.com",
+      search: "Search",
+      noMatch: "{{email}} is not a contact on any company.",
+      created: "Created {{when}}",
+      lastAnalyzed: "Last analysed {{when}}",
+      multiple: "This person is the contact on {{count}} companies.",
+    },
     posthog: {
       link: "Behaviour & session replay (PostHog)",
       caveat:

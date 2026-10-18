@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { NO_VALUE, formatCount, formatDay, formatDateTime } from "@/lib/format"
 
+import { CustomerLookup } from "./CustomerLookup"
 import { PostHogLink } from "./PostHogLink"
 import { useMetricsUsage } from "./queries"
 import type { CompanyUsage } from "./types"
@@ -80,6 +81,8 @@ export function Customers() {
         </h1>
         <WindowPicker params={params} onChange={setWindow} window={data?.window} />
       </header>
+
+      <CustomerLookup />
 
       {usage.isError ? <PanelError error={usage.error} onRetry={retry} /> : null}
 

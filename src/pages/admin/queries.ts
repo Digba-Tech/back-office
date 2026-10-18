@@ -6,6 +6,7 @@ import { auditedQueryOptions } from "./audited"
 import type {
   AccessLog,
   CustomerDossier,
+  CustomerLookup,
   DocumentProcessing,
   MetricsCosts,
   MetricsEfficacy,
@@ -106,10 +107,29 @@ export function useMetricsReport(month: string) {
 // deciding to look at something.
 
 export const customerKeys = {
+  lookup: (email: string) => ["admin", "customers", "lookup", email] as const,
   dossier: (id: string) => ["admin", "customers", id] as const,
   processing: (id: string, documentId: string) =>
     ["admin", "customers", id, "documents", documentId] as const,
   accessLog: (id: string) => ["admin", "customers", id, "access-log"] as const,
+}
+
+/**
+ * Audited including when it finds nothing: "who asked whether this person
+ * is a customer" is exactly what the trail is for, and a miss is still a
+ * lookup. Which is why the caller must fire this on an explicit submit —
+ * a type-ahead would write a row per keystroke.
+ */
+export function useCustomerLookup(email: string, enabled: boolean) {
+  return useQuery({
+    queryKey: customerKeys.lookup(email),
+    queryFn: () =>
+      adminApi.get<CustomerLookup>(
+        `/admin/customers/lookup${adminApi.query({ email })}`
+      ),
+    enabled,
+    ...auditedQueryOptions,
+  })
 }
 
 export function useCustomerDossier(companyId: string, enabled = true) {

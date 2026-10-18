@@ -408,6 +408,17 @@ export const fr: LocaleShape<typeof en> = {
     },
   },
   admin: {
+    lookup: {
+      title: "Rechercher un client par e-mail de contact",
+      auditedHint:
+        "Pour les cas où vous connaissez la personne mais pas le nom qu'elle a donné à son entreprise. Adresse exacte uniquement. Chaque recherche est inscrite au journal d'accès avec votre e-mail — y compris une recherche sans résultat, car demander si quelqu'un est client est en soi une consultation.",
+      placeholder: "nom@exemple.com",
+      search: "Rechercher",
+      noMatch: "{{email}} n'est le contact d'aucune entreprise.",
+      created: "Créée le {{when}}",
+      lastAnalyzed: "Dernière analyse {{when}}",
+      multiple: "Cette personne est le contact de {{count}} entreprises.",
+    },
     posthog: {
       link: "Comportement et relecture de session (PostHog)",
       caveat:

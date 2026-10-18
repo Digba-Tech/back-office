@@ -549,3 +549,27 @@ export type AccessLog = {
   company_id: string
   entries: AccessLogEntry[]
 }
+
+/**
+ * Exact-match lookup by contact email, for the case where you know the
+ * person but not what they called their company.
+ *
+ * A list, not one match: `companies.user_id` has no unique index, so one
+ * person can own several companies.
+ *
+ * Addresses live in SuperTokens, not our database — this resolves live
+ * rather than mirroring them into our schema for one search box.
+ */
+export type CustomerLookupMatch = {
+  company_id: string
+  name: string
+  created_at: string
+  user_id: string
+  last_analyzed_at: string | null
+}
+
+/** A miss is 200 with an empty `matches` — "not a customer" is information. */
+export type CustomerLookup = {
+  email: string
+  matches: CustomerLookupMatch[]
+}

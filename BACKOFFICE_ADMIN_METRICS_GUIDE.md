@@ -280,6 +280,11 @@ Composing the five daily endpoints and summing would give a subtly wrong total: 
 
 ### 8.4 Yes, an open-ended window includes today's partial day — and now says so
 
+> **Correction (third round):** this section claimed every endpoint carried
+> a `window`. Only `/overview` and `/costs` actually did; `/pipeline`,
+> `/usage` and `/efficacy` omitted it entirely. Fixed — **all five now
+> return it**, as does `/report`. You can drop the defensive guard.
+
 Every window is now an object:
 
 ```json
@@ -466,3 +471,48 @@ Ladder: `under_1h`, `1h_4h`, `4h_24h`, `1d_7d`, `over_7d`. Fixed rather than com
 ### 9.4 One more fix, unprompted
 
 Numbers on the **drill-down** path were still arriving as strings — `readiness[].overall_progress_pct` came back as `"41.50"`. §4.2 said this was fixed, and it was, but only for the analytics views; the dossier endpoints reach the database by a different route and hit the same trap independently. Both paths now share one conversion. If you have written a `parseFloat` guard against this anywhere, you can drop it.
+
+---
+
+## 11. Third round of frontend questions
+
+### 11.1 `/pipeline` had no `window` at all — my bug, now fixed
+
+Not `window: null`: **absent**. §8.4 claimed all five endpoints carried one, and only `/overview` and `/costs` did. `/pipeline`, `/usage` and `/efficacy` never got the change.
+
+All five return it now, as does `/report`. **You can remove the defensive guard** — and should, because the guard preserved the consequence you identified: with no `window`, the partial-day marker never renders and today's half-day draws as a cliff that reads as an outage.
+
+```json
+"window": { "since": "2026-09-18", "until": null,
+            "last_day": "2026-10-18", "includes_partial_day": true }
+```
+
+A test now asserts the exact key set on every metrics endpoint, so it cannot regress quietly.
+
+### 11.2 Finding a customer by the person — your suggestion, built as proposed
+
+Both of your framing questions mattered, and the answers shaped the result:
+
+**Is the email even in our database?** No. It exists **only in SuperTokens**. `user_lifecycle` keeps `email_verified_at` — a timestamp — and no address; `auth.users` is a one-column shadow table. There was nothing to expose, which is the honest reason it was never exposed.
+
+**One user per company?** One contact *per company* (`companies.user_id` is singular), but that column has **no unique index**, so one person can own several companies. The lookup therefore returns a list.
+
+You were right that `owner_email` on `companies[]` is the wrong shape, for exactly the reason you gave: that list is unaudited *because* it holds no customer content, and a contact address there would make "who is the contact at company X" answerable with no record that anyone asked.
+
+```
+GET /api/v2/admin/customers/lookup?email=k.toure@coop.ci
+```
+
+```json
+{ "email": "k.toure@coop.ci",
+  "matches": [ { "company_id": "…", "name": "Coop du Centre",
+                 "created_at": "…", "user_id": "…",
+                 "last_analyzed_at": "…" } ] }
+```
+
+- **Audited**, like everything else in that family — including when it finds nothing. "Who asked whether this person is a customer" is precisely what the trail is for, and a miss is still a lookup.
+- **No match is `200` with `"matches": []`**, not a 404. "This person is not a customer" is information.
+- **Exact email match only.** No partial or fuzzy search: a substring search across a user directory is a harvesting tool, and the workflow you described starts from a known address.
+- Resolved **live from SuperTokens**, not mirrored. Copying addresses into our database would spread personal data for the convenience of one search box. User-id mapping is handled: SuperTokens returns the external id for migrated testers, which is what `companies.user_id` holds.
+
+**On the masked-email middle ground — I'd rather not.** `k•••@coop.ci` in an unaudited list is still contact data, and it erodes the clean "no customer content" property that lets a test enforce the boundary; once one masked field is acceptable, the next is a judgement call. The dossier is where a full address belongs if you need to display one. It carries `user_id` today, and I can resolve the email into that (audited) response if the support flow wants it — say the word.
