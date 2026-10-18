@@ -339,7 +339,18 @@ The gate runs before the route body, so an access is recorded even when the thin
 
 ---
 
-## 9. Second round of frontend questions
+## 9. PostHog
+
+Not covered here. PostHog spans both frontends and has nothing to do with the
+admin API, so it has its own document: **`POSTHOG_INTEGRATION_GUIDE.md`**
+(copied into this repo's root). The back-office's part is small and has one
+hard rule — **analytics only, never session replay**, because an admin's
+screen shows several tenants at once and recording it would disclose one
+customer's data in a recording about another.
+
+---
+
+## 10. Second round of frontend questions
 
 ### 9.1 `/admin/metrics/report` — full shape, and an empty month
 

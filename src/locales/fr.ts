@@ -135,6 +135,8 @@ export const fr: LocaleShape<typeof en> = {
       ingest_source: "Ingestion de source",
       extract_requirements: "Extraction des exigences",
       gap_sweep: "Balayage des écarts",
+      backfill_requirement_i18n: "Reprise des traductions d'exigences",
+      snapshot_readiness: "Instantané de préparation",
     },
   },
   sources: {
@@ -629,15 +631,6 @@ export const fr: LocaleShape<typeof en> = {
         critical: "Critique",
         warning: "Avertissement",
         info: "Information",
-      },
-      jobType: {
-        ingest_document: "Ingestion de document",
-        analyze_company: "Analyse d'entreprise",
-        ingest_source: "Ingestion de source",
-        extract_requirements: "Extraction d'exigences",
-        gap_sweep: "Balayage des écarts",
-        backfill_requirement_i18n: "Reprise des traductions d'exigences",
-        snapshot_readiness: "Instantané de préparation",
       },
       pipelineStep: {
         ocr: "OCR",

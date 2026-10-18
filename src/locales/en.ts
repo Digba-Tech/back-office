@@ -133,6 +133,8 @@ export const en = {
       ingest_source: "Ingest source",
       extract_requirements: "Extract requirements",
       gap_sweep: "Gap sweep",
+      backfill_requirement_i18n: "Backfill requirement translations",
+      snapshot_readiness: "Snapshot readiness",
     },
   },
   sources: {
@@ -625,15 +627,6 @@ export const en = {
         critical: "Critical",
         warning: "Warning",
         info: "Info",
-      },
-      jobType: {
-        ingest_document: "Ingest document",
-        analyze_company: "Analyse company",
-        ingest_source: "Ingest source",
-        extract_requirements: "Extract requirements",
-        gap_sweep: "Gap sweep",
-        backfill_requirement_i18n: "Backfill requirement translations",
-        snapshot_readiness: "Snapshot readiness",
       },
       pipelineStep: {
         ocr: "OCR",

@@ -20,8 +20,15 @@ export function useKeyLabel(): (group: KeyGroup, value: string) => string {
 
   return React.useCallback(
     (group: KeyGroup, value: string) => {
-      const path = `admin.keys.${group}.${value}`
-      return i18n.exists(path) ? t(path) : humanizeKey(value)
+      // `enums.*` predates the admin face and already defines several of
+      // these vocabularies for the knowledge face. It is checked second so
+      // a term is translated in exactly one place rather than drifting
+      // between two — the job queue and the pipeline metrics read the same
+      // job_type column, and they must not disagree about its name.
+      for (const path of [`admin.keys.${group}.${value}`, `enums.${group}.${value}`]) {
+        if (i18n.exists(path)) return t(path)
+      }
+      return humanizeKey(value)
     },
     [t, i18n]
   )
