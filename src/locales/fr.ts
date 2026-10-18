@@ -385,6 +385,10 @@ export const fr: LocaleShape<typeof en> = {
       title: "File des tâches",
       filterAttention: "Nécessite votre attention",
       filterAll: "Toutes",
+      filterType: "Type",
+      allTypes: "Tous les types",
+      sinceFilter: "Affiche les tâches mises à jour depuis {{when}}.",
+      clearSince: "Effacer",
       colType: "Type",
       colStatus: "Statut",
       colAttempts: "Tentatives",
@@ -593,6 +597,7 @@ export const fr: LocaleShape<typeof en> = {
       attemptsCaption:
         "Des tentatives, pas des tâches : une tâche ayant échoué puis réussi compte deux fois ici et une seule fois dans la file.",
       jobTypeTitle: "Taux de réussite par type de tâche",
+      jobTypeCaption: "Pondéré sur la période. Sélectionnez un type pour ouvrir la file filtrée sur ses échecs.",
     },
     keys: {
       standard: {

@@ -381,6 +381,10 @@ export const en = {
       title: "Job queue",
       filterAttention: "Needs attention",
       filterAll: "All",
+      filterType: "Type",
+      allTypes: "All types",
+      sinceFilter: "Showing jobs updated since {{when}}.",
+      clearSince: "Clear",
       colType: "Type",
       colStatus: "Status",
       colAttempts: "Attempts",
@@ -589,6 +593,7 @@ export const en = {
       attemptsCaption:
         "Attempts, not jobs: a job that failed once and then succeeded counts twice here and once in the queue.",
       jobTypeTitle: "Success rate per job type",
+      jobTypeCaption: "Weighted across the window. Select a type to open the queue filtered to its failures.",
     },
     keys: {
       standard: {

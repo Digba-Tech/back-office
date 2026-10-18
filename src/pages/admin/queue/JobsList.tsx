@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
+import { useSearchParams } from "react-router-dom"
 
 import { SegmentedControl } from "@/components/segmented-control"
 import { JobStatusBadge } from "@/components/status-badge"
@@ -30,16 +31,71 @@ const STUCK_AFTER_MS = 5 * 60 * 1000
 
 type FilterValue = "attention" | "all" | "pending" | "running" | "done" | "error"
 
+const FILTER_VALUES: FilterValue[] = [
+  "attention",
+  "all",
+  "pending",
+  "running",
+  "done",
+  "error",
+]
+
 function filterToStatusParam(filter: FilterValue): string | undefined {
   if (filter === "attention") return "running,error"
   if (filter === "all") return undefined
   return filter
 }
 
+// The registry the backend validates against. An unknown job_type is a 400
+// rather than an empty list — deliberately, since a typo and a type with no
+// jobs look identical otherwise — so a hand-edited URL is dropped here
+// instead of turning the page into an error.
+const JOB_TYPES = [
+  "ingest_document",
+  "analyze_company",
+  "ingest_source",
+  "extract_requirements",
+  "gap_sweep",
+  "backfill_requirement_i18n",
+  "snapshot_readiness",
+] as const
+
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/
+
 export function JobsList() {
   const { t, i18n } = useTranslation()
-  const [filter, setFilter] = React.useState<FilterValue>("attention")
-  const jobs = useJobsList(filterToStatusParam(filter))
+
+  // Filters live in the URL so the pipeline pages can link straight to a
+  // filtered queue — "these are the attempts that failed on Tuesday" is
+  // only useful if it lands somewhere, and it makes the view shareable.
+  const [search, setSearch] = useSearchParams()
+
+  const statusParam = search.get("status")
+  const filter: FilterValue = FILTER_VALUES.includes(statusParam as FilterValue)
+    ? (statusParam as FilterValue)
+    : "attention"
+
+  const jobTypeParam = search.get("job_type")
+  const jobType = JOB_TYPES.includes(jobTypeParam as (typeof JOB_TYPES)[number])
+    ? (jobTypeParam as string)
+    : undefined
+
+  const sinceParam = search.get("since")
+  const since = sinceParam && ISO_DATETIME.test(sinceParam) ? sinceParam : undefined
+
+  function setParam(key: string, value: string | undefined) {
+    const updated = new URLSearchParams(search)
+    if (value) updated.set(key, value)
+    else updated.delete(key)
+    setSearch(updated)
+    setRetryResult(null)
+  }
+
+  const jobs = useJobsList({
+    status_filter: filterToStatusParam(filter),
+    job_type: jobType,
+    since,
+  })
   const retryJob = useRetryJob()
   const [retryingId, setRetryingId] = React.useState<string | null>(null)
   // Retrying moves a job to "pending", which drops out of the default
@@ -75,21 +131,55 @@ export function JobsList() {
         </p>
       )}
 
-      <SegmentedControl
-        value={filter}
-        onChange={(value) => {
-          setFilter(value)
-          setRetryResult(null)
-        }}
-        options={[
-          { value: "attention", label: t("jobs.list.filterAttention") },
-          { value: "all", label: t("jobs.list.filterAll") },
-          { value: "pending", label: t("enums.jobStatus.pending") },
-          { value: "running", label: t("enums.jobStatus.running") },
-          { value: "done", label: t("enums.jobStatus.done") },
-          { value: "error", label: t("enums.jobStatus.error") },
-        ]}
-      />
+      <div className="flex flex-wrap items-center gap-4">
+        <SegmentedControl
+          value={filter}
+          onChange={(value) => setParam("status", value === "attention" ? undefined : value)}
+          options={[
+            { value: "attention", label: t("jobs.list.filterAttention") },
+            { value: "all", label: t("jobs.list.filterAll") },
+            { value: "pending", label: t("enums.jobStatus.pending") },
+            { value: "running", label: t("enums.jobStatus.running") },
+            { value: "done", label: t("enums.jobStatus.done") },
+            { value: "error", label: t("enums.jobStatus.error") },
+          ]}
+        />
+
+        <label className="flex items-center gap-2 text-sm text-ink-500">
+          {t("jobs.list.filterType")}
+          <select
+            value={jobType ?? ""}
+            onChange={(event) => setParam("job_type", event.target.value || undefined)}
+            className="h-7 rounded-md border border-line bg-background px-2 text-sm text-ink-700"
+          >
+            <option value="">{t("jobs.list.allTypes")}</option>
+            {JOB_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {t(`enums.jobType.${type}`, { defaultValue: type })}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {/* Arriving from a pipeline drill-down narrows to a day. Saying so
+          matters: an empty queue under a silent `since` reads as "nothing
+          is queued" when it means "nothing since Tuesday". */}
+      {since ? (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-ink-500">
+          {t("jobs.list.sinceFilter", {
+            when: formatDateTime(since, i18n.language),
+          })}
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={() => setParam("since", undefined)}
+          >
+            {t("jobs.list.clearSince")}
+          </Button>
+        </p>
+      ) : null}
 
       {jobs.isLoading && <Skeleton className="h-40 w-full" />}
 

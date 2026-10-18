@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 
 import { CategoryBars } from "@/components/charts/category-bars"
 import { SeriesTable } from "@/components/charts/series-table"
@@ -56,8 +57,32 @@ function rollUp<T extends Record<string, unknown>>(
   return [...groups.values()]
 }
 
+/**
+ * Into the live queue, filtered to this job type's failures. The backend
+ * validates `job_type` against its registry and 400s an unknown one, so
+ * only values that came from the API itself are ever sent.
+ */
+function queueHref(jobType: string, day?: string): string {
+  const params = new URLSearchParams({ job_type: jobType, status: "error" })
+  // `since` filters on updated_at, so a day bucket becomes that day's
+  // midnight. URLSearchParams encodes it; an unencoded "+00:00" would
+  // arrive as a space and 422.
+  if (day) params.set("since", `${day.slice(0, 10)}T00:00:00Z`)
+  return `/admin/queue?${params.toString()}`
+}
+
+/** A day's failures, any job type. */
+function dayQueueHref(day: string): string {
+  const params = new URLSearchParams({
+    status: "error",
+    since: `${day.slice(0, 10)}T00:00:00Z`,
+  })
+  return `/admin/queue?${params.toString()}`
+}
+
 export function Pipeline() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const language = i18n.language
   const { params, setWindow } = useMetricsWindow()
   const pipeline = useMetricsPipeline(params)
@@ -289,6 +314,7 @@ export function Pipeline() {
             rowFormat={day}
             series={attemptSeries}
             valueFormat={count}
+            rowHref={(row) => dayQueueHref(String(row.day))}
           />
         }
       >
@@ -299,6 +325,7 @@ export function Pipeline() {
           window={data?.window}
           valueFormat={count}
           labelFormat={day}
+          onCategorySelect={(bucket) => navigate(dayQueueHref(bucket))}
           colors={[
             STATUS_COLORS.good,
             STATUS_COLORS.danger,
@@ -309,9 +336,12 @@ export function Pipeline() {
         />
       </Panel>
 
+      {/* Drilling down lands on the live queue filtered to that type's
+          failures — "this type fails a lot" is only actionable if you can
+          then see which jobs, and retry them. */}
       <Panel
         title={t("admin.pipeline.jobTypeTitle")}
-        caption={t("admin.pipeline.stepSuccessCaption")}
+        caption={t("admin.pipeline.jobTypeCaption")}
         isLoading={pipeline.isPending}
         isEmpty={byJobType.length === 0}
         error={pipeline.error ?? undefined}
@@ -324,6 +354,7 @@ export function Pipeline() {
             rowFormat={(value) => keyLabel("jobType", value)}
             series={[{ key: "success_pct", label: t("admin.pipeline.successRate") }]}
             valueFormat={pct}
+            rowHref={(row) => queueHref(String(row.job_type))}
           />
         }
       >
@@ -335,6 +366,7 @@ export function Pipeline() {
           valueFormat={pct}
           categoryFormat={(value) => keyLabel("jobType", value)}
           colorIndex={1}
+          onCategorySelect={(jobType) => navigate(queueHref(jobType))}
           ariaLabel={t("admin.pipeline.jobTypeTitle")}
         />
       </Panel>

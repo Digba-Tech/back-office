@@ -36,6 +36,7 @@ export function StackedBars({
   labelFormat,
   tickFormat,
   colors,
+  onCategorySelect,
   height = CHART_HEIGHT,
   ariaLabel,
 }: {
@@ -48,6 +49,12 @@ export function StackedBars({
   tickFormat?: (value: number | null | undefined) => string
   /** Explicit colours — use for status scales, which are not series colours. */
   colors?: string[]
+  /**
+   * Makes a bar a drill-down, receiving the x value. Bars cannot be
+   * focused, so a panel using this must link the same rows in its table
+   * view for anyone not using a mouse.
+   */
+  onCategorySelect?: (category: string) => void
   height?: number
   ariaLabel?: string
 }) {
@@ -103,6 +110,15 @@ export function StackedBars({
               stroke="var(--card)"
               strokeWidth={2}
               maxBarSize={28}
+              cursor={onCategorySelect ? "pointer" : undefined}
+              onClick={
+                onCategorySelect
+                  ? (entry: unknown) => {
+                      const category = (entry as Record<string, unknown>)?.[xKey]
+                      if (typeof category === "string") onCategorySelect(category)
+                    }
+                  : undefined
+              }
             />
           ))}
         </BarChart>

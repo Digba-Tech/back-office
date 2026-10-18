@@ -31,6 +31,7 @@ export function CategoryBars({
   valueFormat,
   categoryFormat,
   colorIndex = 0,
+  onCategorySelect,
   height,
   ariaLabel,
 }: {
@@ -44,6 +45,13 @@ export function CategoryBars({
   categoryFormat?: (value: string) => string
   /** Which palette slot — fixed per entity, never cycled. */
   colorIndex?: number
+  /**
+   * Makes the bars a drill-down. A bar is not focusable and a screen
+   * reader cannot click one, so a panel that sets this must also link the
+   * same rows in its table view — which the "view as table" toggle already
+   * requires it to have.
+   */
+  onCategorySelect?: (category: string) => void
   height?: number
   ariaLabel?: string
 }) {
@@ -90,6 +98,15 @@ export function CategoryBars({
             fill={seriesColor(colorIndex)}
             radius={[0, 4, 4, 0]}
             maxBarSize={18}
+            cursor={onCategorySelect ? "pointer" : undefined}
+            onClick={
+              onCategorySelect
+                ? (entry: unknown) => {
+                    const category = (entry as Record<string, unknown>)?.[categoryKey]
+                    if (typeof category === "string") onCategorySelect(category)
+                  }
+                : undefined
+            }
           >
             {/* Direct labels: at this density they beat a legend, and they
                 are what makes the lighter palette slots legible. */}

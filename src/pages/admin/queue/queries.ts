@@ -3,25 +3,32 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { adminApi } from "@/lib/api"
 import type { Job } from "@/lib/types"
 
+export type JobFilters = {
+  /** Comma-separated: pending|running|done|error. */
+  status_filter?: string
+  /** Comma-separated, validated against the registry — an unknown one is a 400. */
+  job_type?: string
+  /** ISO datetime, filtered on updated_at. */
+  since?: string
+}
+
 export const jobsKeys = {
   all: ["jobs"] as const,
-  list: (statusFilter?: string) => ["jobs", "list", statusFilter] as const,
+  list: (filters: JobFilters) => ["jobs", "list", filters] as const,
 }
 
 // Polls by default (guide §4.3's suggested panel: "poll ... periodically") —
 // jobs move through pending/running/done on their own, so the list would
 // otherwise go stale the moment a background worker picks something up.
 export function useJobsList(
-  statusFilter?: string,
+  filters: JobFilters = {},
   { poll = true }: { poll?: boolean } = {}
 ) {
   return useQuery({
-    queryKey: jobsKeys.list(statusFilter),
+    queryKey: jobsKeys.list(filters),
     queryFn: () =>
       adminApi
-        .get<{ jobs: Job[] }>(
-          `/admin/jobs${adminApi.query({ status_filter: statusFilter })}`
-        )
+        .get<{ jobs: Job[] }>(`/admin/jobs${adminApi.query({ ...filters })}`)
         .then((res) => res.jobs),
     refetchInterval: poll ? 10000 : false,
   })
